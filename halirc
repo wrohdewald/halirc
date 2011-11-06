@@ -636,7 +636,7 @@ a sequence of characters: 's' shows data sent to appliances.
 'i' shows data received from remote controls.
 'c' shows changes in the appliance status.
 'f' shows filtering info
-             """, metavar='DEBUG')
+             """, default='', metavar='DEBUG')
     parser.add_option('-b', '--background', dest='background',
         action="store_true", default=False,
         help="run in background. Logging goes to the syslogs.")
