@@ -42,7 +42,7 @@ class MorningAction(object):
         self.myLG = myLG
         self.prevChannel = None
         self.silencer = '/home/wr/ausschlafen'
-        workdays = [0, 1, 2, 3, 4, 5, 6]
+        workdays = [0, 1, 2, 3, 4]
         worker.addTimer(self.start, hour=3, minute=58, weekday=workdays)
         worker.addTimer(self.changeVolume, hour=4, minute=21, weekday=workdays)
         worker.addTimer(self.end, hour=4, minute=40, weekday=workdays)
