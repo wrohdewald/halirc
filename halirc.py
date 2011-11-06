@@ -127,8 +127,8 @@ def main():
     worker.addFilter(lgPlasma.send, args='inputhdmi2', remote='Receiver12V', button='3')
     worker.addFilter(lgPlasma.send, args='inputcomponent', remote='Receiver12V', button='4')
     worker.addFilter(lgPlasma.send, args='inputanalog', remote='Receiver12V', button='5')
-    worker.addFilter(vdr.switchVt, args='desktop', remote='Receiver12V', button='6')
-    worker.addFilter(vdr.switchVt, args='video', remote='Receiver12V', button='7')
+    worker.addFilter(vdr.switchVt, args=['desktop', lgtv], remote='Receiver12V', button='6')
+    worker.addFilter(vdr.switchVt, args=['video', lgtv], remote='Receiver12V', button='7')
 
     morning = MorningAction(worker, vdr, denon, lgPlasma) # pylint: disable=W0612
 

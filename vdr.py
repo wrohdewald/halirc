@@ -85,7 +85,7 @@ class VDRServer(Device):
         if channel not in self.getChannel():
             self.send('chan %s' % channel)
 
-    def switchVt(self, which):
+    def switchVt(self, which, lgtv):
         """activate desktop or video vt"""
         current = currentConsole()
         if which == 'desktop':
@@ -99,7 +99,7 @@ class VDRServer(Device):
             if 's' in OPTIONS.debug:
                 LOGGER.debug('switch to console %d' % wanted)
             os.system('chvt %d' % wanted)
-#            lg.init()
+            lgtv.init()
             if which == 'desktop':
                 self.send('hitk stop') # stop playing
             else:
