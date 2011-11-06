@@ -36,10 +36,10 @@ from vdr import VDRServer
 
 class MorningAction(object):
     """very custom..."""
-    def __init__(self, worker, vdr, denon, lgtv):
-        self.vdr = vdr
-        self.denon = denon
-        self.lgtv = lgtv
+    def __init__(self, worker, myVdr, myDenon, myLG):
+        self.myVdr = myVdr
+        self.myDenon = myDenon
+        self.myLG = myLG
         self.prevChannel = None
         self.silencer = '/home/wr/ausschlafen'
         workdays = [0, 1, 2, 3, 4, 5, 6]
@@ -57,30 +57,30 @@ class MorningAction(object):
         """start channel 93 loudly"""
         LOGGER.debug('morning.start')
         if self.wanted():
-            self.denon.init()
-            self.denon.sendIfNot('SIDBS/SAT')
-            self.denon.sendIfNot('MV57')
-            self.prevChannel = self.vdr.getChannel()
+            self.myDenon.init()
+            self.myDenon.sendIfNot('SIDBS/SAT')
+            self.myDenon.sendIfNot('MV57')
+            self.prevChannel = self.myVdr.getChannel()
             if self.prevChannel != 'NDR 90,3':
-                self.vdr.gotoChannel('NDR 90,3')
+                self.myVdr.gotoChannel('NDR 90,3')
             else:
                 self.prevChannel = None
-            self.lgtv.standby()
+            self.myLG.standby()
 
     def changeVolume(self):
         """kitchen time"""
         LOGGER.debug('morning.changeVolume')
         if self.wanted():
-            self.denon.send('MV42')
+            self.myDenon.send('MV42')
 
     def end(self):
         """off to train"""
         LOGGER.debug('morning.end')
         if self.wanted():
-            self.denon.standby()
+            self.myDenon.standby()
             if self.prevChannel:
-                self.vdr.gotoChannel(self.prevChannel)
-            self.lgtv.standby()
+                self.myVdr.gotoChannel(self.prevChannel)
+            self.myLG.standby()
         elif os.path.exists(self.silencer):
             os.remove(self.silencer)
 
@@ -89,48 +89,48 @@ def main():
     # pylint: disable=W0603
     print 'main:', LOGGER
     irw = Irw()
-    denon = Denon()
-    lgPlasma = LGTV()
-    vdr = VDRServer()
-    appliances = [denon, lgPlasma, vdr]
+    myDenon = Denon()
+    myLG = LGTV()
+    myVdr = VDRServer()
+    appliances = [myDenon, myLG, myVdr]
 
     worker = Worker()
 
     # use buttons of an unused remote for controlling
     # the Denon because the IR receiver of the Denon
     # is too far away
-    worker.addFilter(denon.volume, args='UP', remote='AcerP1165', button='Up', repeat=None)
-    worker.addFilter(denon.volume, args='DOWN', remote='AcerP1165', button='Down', repeat=None)
-    worker.addFilter(denon.mute, remote='AcerP1165', button='PgUp')
-    worker.addFilter(denon.queryStatus, remote='AcerP1165', button='PgDown')
-    worker.addFilter(denon.send, args='SIDBS/SAT', remote='AcerP1165', button='0')
-    worker.addFilter(denon.send, args='SICD', remote='AcerP1165', button='1')
-    worker.addFilter(denon.send, args='SITUNER', remote='AcerP1165', button='2')
-    worker.addFilter(denon.send, args='SIDVD', remote='AcerP1165', button='3')
-    worker.addFilter(denon.send, args='SIVDP', remote='AcerP1165', button='4')
-    worker.addFilter(denon.send, args='SIVCR-1', remote='AcerP1165', button='5')
-    worker.addFilter(denon.send, args='SIVCR-2', remote='AcerP1165', button='6')
-    worker.addFilter(denon.send, args='SIV.AUX', remote='AcerP1165', button='7')
-    worker.addFilter(denon.send, args='SICDR.TAPE', remote='AcerP1165', button='8')
-    worker.addFilter(denon.send, args='SITV', remote='AcerP1165', button='9')
-    worker.addFilter(denon.send, args='PWON', remote='AcerP1165', button='Left')
-    worker.addFilter(denon.send, args='PWSTANDBY', remote='AcerP1165', button='Right')
-    worker.addFilter(denon.send, args='TMAM', remote='AcerP1165', button='Freeze')
-    worker.addFilter(denon.send, args='TMFM', remote='AcerP1165', button='Hide')
+    worker.addFilter(myDenon.volume, args='UP', remote='AcerP1165', button='Up', repeat=None)
+    worker.addFilter(myDenon.volume, args='DOWN', remote='AcerP1165', button='Down', repeat=None)
+    worker.addFilter(myDenon.mute, remote='AcerP1165', button='PgUp')
+    worker.addFilter(myDenon.queryStatus, remote='AcerP1165', button='PgDown')
+    worker.addFilter(myDenon.send, args='SIDBS/SAT', remote='AcerP1165', button='0')
+    worker.addFilter(myDenon.send, args='SICD', remote='AcerP1165', button='1')
+    worker.addFilter(myDenon.send, args='SITUNER', remote='AcerP1165', button='2')
+    worker.addFilter(myDenon.send, args='SIDVD', remote='AcerP1165', button='3')
+    worker.addFilter(myDenon.send, args='SIVDP', remote='AcerP1165', button='4')
+    worker.addFilter(myDenon.send, args='SIVCR-1', remote='AcerP1165', button='5')
+    worker.addFilter(myDenon.send, args='SIVCR-2', remote='AcerP1165', button='6')
+    worker.addFilter(myDenon.send, args='SIV.AUX', remote='AcerP1165', button='7')
+    worker.addFilter(myDenon.send, args='SICDR.TAPE', remote='AcerP1165', button='8')
+    worker.addFilter(myDenon.send, args='SITV', remote='AcerP1165', button='9')
+    worker.addFilter(myDenon.send, args='PWON', remote='AcerP1165', button='Left')
+    worker.addFilter(myDenon.send, args='PWSTANDBY', remote='AcerP1165', button='Right')
+    worker.addFilter(myDenon.send, args='TMAM', remote='AcerP1165', button='Freeze')
+    worker.addFilter(myDenon.send, args='TMFM', remote='AcerP1165', button='Hide')
     worker.addFilter(os.system, args='dose_ein 3', button='Zoom')
     worker.addFilter(os.system, args='dose_aus 3', button='Resync')
-    worker.addFilter(lgPlasma.mutevideo, args='Power2', remote='Hauppauge6400')
-    worker.addFilter(lgPlasma.init, remote='Receiver12V', button='Power')
-    worker.addFilter(lgPlasma.send, args='poweroff', remote='Receiver12V', button='0')
-    worker.addFilter(lgPlasma.send, args='inputdtv', remote='Receiver12V', button='1')
-    worker.addFilter(lgPlasma.send, args='inputhdmi1', remote='Receiver12V', button='2')
-    worker.addFilter(lgPlasma.send, args='inputhdmi2', remote='Receiver12V', button='3')
-    worker.addFilter(lgPlasma.send, args='inputcomponent', remote='Receiver12V', button='4')
-    worker.addFilter(lgPlasma.send, args='inputanalog', remote='Receiver12V', button='5')
-    worker.addFilter(vdr.switchVt, args=['desktop', lgtv], remote='Receiver12V', button='6')
-    worker.addFilter(vdr.switchVt, args=['video', lgtv], remote='Receiver12V', button='7')
+    worker.addFilter(myLG.mutevideo, args='Power2', remote='Hauppauge6400')
+    worker.addFilter(myLG.init, remote='Receiver12V', button='Power')
+    worker.addFilter(myLG.send, args='poweroff', remote='Receiver12V', button='0')
+    worker.addFilter(myLG.send, args='inputdtv', remote='Receiver12V', button='1')
+    worker.addFilter(myLG.send, args='inputhdmi1', remote='Receiver12V', button='2')
+    worker.addFilter(myLG.send, args='inputhdmi2', remote='Receiver12V', button='3')
+    worker.addFilter(myLG.send, args='inputcomponent', remote='Receiver12V', button='4')
+    worker.addFilter(myLG.send, args='inputanalog', remote='Receiver12V', button='5')
+    worker.addFilter(myVdr.switchVt, args=['desktop', myLG], remote='Receiver12V', button='6')
+    worker.addFilter(myVdr.switchVt, args=['video', myLG], remote='Receiver12V', button='7')
 
-    morning = MorningAction(worker, vdr, denon, lgPlasma) # pylint: disable=W0612
+    morning = MorningAction(worker, myVdr, myDenon, myLG) # pylint: disable=W0612
 
     while True:
         event = irw.read()
