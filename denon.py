@@ -194,6 +194,9 @@ class Denon(SerialDevice):
 
     def getAnswer(self, cmd):
         """ask Denon unless we already know the current value"""
+        if cmd[:2] != 'PW' and not self.isPoweredOn():
+            LOGGER.error('Denon: in standby mode, we can only ask for PW')
+            return ''
         command = self.parse(cmd)[0]
         while not command in self.current:
             self.send(command + '?')
