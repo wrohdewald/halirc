@@ -19,8 +19,7 @@ along with this program if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """
 
-import os
-from lib import Device, OPTIONS, LOGGER, currentConsole
+from lib import Device, OPTIONS, LOGGER
 from telnetlib import Telnet
 
 class VDRServer(Device):
@@ -84,24 +83,3 @@ class VDRServer(Device):
         Channel number and name are both accepted."""
         if channel not in self.getChannel():
             self.send('chan %s' % channel)
-
-    def switchVt(self, which, lgtv):
-        """activate desktop or video vt"""
-        current = currentConsole()
-        if which == 'desktop':
-            wanted = 7
-        elif which == 'video':
-            with open('/video0/vdrconsole','r') as infile:
-                wanted = int(infile.readlines()[0][:-1])
-        else:
-            raise Exception('VDR.switchVt only accepts desktop and video')
-        if current != wanted:
-            if 's' in OPTIONS.debug:
-                LOGGER.debug('switch to console %d' % wanted)
-            os.system('chvt %d' % wanted)
-            lgtv.init()
-            if which == 'desktop':
-                self.send('hitk stop') # stop playing
-            else:
-                # reselect current channel, otherwise we have no picture with vdpau/X11
-                self.send('chan %s' % self.getChannel()[0])

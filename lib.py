@@ -21,7 +21,7 @@ along with this program if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """
 
-import datetime, socket, subprocess
+import datetime, socket
 import logging, logging.handlers
 import serial
 from optparse import OptionParser
@@ -390,13 +390,3 @@ class Worker(object):
                     if fltr.stopIfMatch:
                         break
             return len(matchingFilters) > 0
-
-def currentConsole():
-    """returns the current fg console"""
-    result = subprocess.Popen('fgconsole', stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE).communicate()
-    if result[1]:
-        LOGGER.error('fgconsole:%s' % result[1])
-        return None
-    return int(result[0][:-1])
-

@@ -128,8 +128,6 @@ def main():
     worker.addFilter(myLG.send, args='inputhdmi2', remote='Receiver12V', button='3')
     worker.addFilter(myLG.send, args='inputcomponent', remote='Receiver12V', button='4')
     worker.addFilter(myLG.send, args='inputanalog', remote='Receiver12V', button='5')
-    worker.addFilter(myVdr.switchVt, args=['desktop', myLG], remote='Receiver12V', button='6')
-    worker.addFilter(myVdr.switchVt, args=['video', myLG], remote='Receiver12V', button='7')
 
     # depending on how small the distance between pressing 8 and 9, there might
     # be additional events with repeat='01' between. How to handle this cleanly?
