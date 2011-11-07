@@ -230,7 +230,12 @@ class Denon(SerialDevice):
                 while not 'MV' in self.current:
                     self.send('MV?')
                 self.mutedVolume = self.current['MV']
-                newMV = '20'
+                if self.mutedVolume < '25':
+                    # denon was muted when halirc started
+                    self.mutedVolume = None
+                    newMV = '40'
+                else:
+                    newMV = '20'
             self.send('MV%s' % newMV)
 
     def queryStatus(self, full=False):
