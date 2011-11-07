@@ -26,7 +26,7 @@ Harmony: Denon Lautstaerke und Mute dito
 
 import os
 
-from lib import parseOptions, initLogger
+from lib import parseOptions, initLogger, Event
 parseOptions()
 initLogger()
 from lib import Irw, Worker, LOGGER
@@ -87,7 +87,6 @@ class MorningAction(object):
 def main():
     """define main, avoid to pollute global namespace"""
     # pylint: disable=W0603
-    print 'main:', LOGGER
     irw = Irw()
     myDenon = Denon()
     myLG = LGTV()
@@ -101,7 +100,7 @@ def main():
     # is too far away
     worker.addFilter(myDenon.volume, args='UP', remote='AcerP1165', button='Up', repeat=None)
     worker.addFilter(myDenon.volume, args='DOWN', remote='AcerP1165', button='Down', repeat=None)
-    worker.addFilter(myDenon.mute, remote='AcerP1165', button='PgUp')
+    worker.addFilter(myDenon.mute, name='mute', remote='AcerP1165', button='PgUp')
     worker.addFilter(myDenon.queryStatus, remote='AcerP1165', button='PgDown')
     worker.addFilter(myDenon.send, args='SIDBS/SAT', remote='AcerP1165', button='0')
     worker.addFilter(myDenon.send, args='SICD', remote='AcerP1165', button='1')
@@ -129,6 +128,12 @@ def main():
     worker.addFilter(myLG.send, args='inputanalog', remote='Receiver12V', button='5')
     worker.addFilter(myVdr.switchVt, args=['desktop', myLG], remote='Receiver12V', button='6')
     worker.addFilter(myVdr.switchVt, args=['video', myLG], remote='Receiver12V', button='7')
+
+    # depending on how small the distance between pressing 8 and 9, there might
+    # be additional events with repeat='01' between. How to handle this cleanly?
+    worker.addFilter(myDenon.send, name='tuner2', args='SITUNER',
+           events=[Event(remote='Receiver12V', button='8', repeat=None),
+                   Event(remote='Receiver12V', button='9', repeat=None)])
 
     morning = MorningAction(worker, myVdr, myDenon, myLG) # pylint: disable=W0612
 

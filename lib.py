@@ -161,25 +161,23 @@ class SerialDevice(Device):
 
 class Event(object):
     """keeps attributes for events from lirc"""
-    def __init__(self, line=None, name=None, remote=None, button=None, repeat='00'):
+    def __init__(self, line=None, remote=None, button=None, repeat='00'):
         if line:
             if 'i' in OPTIONS.debug:
-                LOGGER.debug('event:%s ' % line)
+                LOGGER.debug('irw: %s ' % line)
             self.code, self.repeat, self.button, self.remote = \
                 line.strip().split(' ')
-            self.name = ''
         else:
             self.code = None
-            self.name = name
             self.remote = remote
             self.button = button
             self.repeat = repeat
+        self.when = datetime.datetime.now()
 
     def __str__(self):
-        return '%s %s %s' % (
-           (self.name or 'anon'),
-           (self.remote or 'all remotes'),
-           (self.button or 'all buttons'))
+        return '%s.%s' % (
+           (self.remote or '*'),
+           (self.button or '*'))
 
     def __eq__(self, other):
         """compares remote, button, repeat. None is a wildcard."""
@@ -244,7 +242,6 @@ def initLogger():
     to syslog"""
     global LOGGER # pylint: disable=W0603
     LOGGER = logging.getLogger('halirc')
-    print 'initlog: LOGGER:', LOGGER
     if OPTIONS.background:
         handler = logging.handlers.SysLogHandler('/dev/log')
     else:
@@ -300,6 +297,48 @@ class Timer(object):
             else:
                 self.action()
 
+class Filter(object):
+    """a filter always has a name. parts is a list of events.
+       maxTime is of type timedelta, with default = len(events) seconds.
+       if stopIfMatch=True and this Filter matches, do not look at following filters"""
+    def __init__(self, name, parts, action, args=None, maxTime=None, stopIfMatch=False):
+        self.name = name
+        self.parts = parts
+        self.maxTime = maxTime
+        if len(parts) > 1 and not self.maxTime:
+            self.maxTime = datetime.timedelta(seconds=len(parts)-1)
+        self.action = action
+        self.args = args
+        self.stopIfMatch = stopIfMatch
+
+    def matches(self, events):
+        """does the filter match the end of the actual events?"""
+        comp = events[-len(self.parts):]
+        if len(comp) < len(self.parts):
+            return False
+        if len(comp) > 1 and comp[-1].when - comp[0].when > self.maxTime:
+            # the events are too far away from each other:
+            return False
+        return all(comp[x] == self.parts[x] for x in range(0, len(comp)))
+
+    def execute(self):
+        """execute this filter action"""
+        if 'f' in OPTIONS.debug:
+            LOGGER.debug('executing filter %s' % str(self))
+        if self.args:
+            if isinstance(self.args, list):
+                return self.action(*self.args) # pylint: disable=W0142
+            else:
+                return self.action(self.args)
+        else:
+            return self.action()
+
+    def __str__(self):
+        """return name"""
+        if self.name:
+            return self.name
+        return '[%s]' % ','.join(str(x) for x in self.parts)
+
 class Worker(object):
     """executes events if they match filters"""
     def __init__(self):
@@ -307,16 +346,28 @@ class Worker(object):
         self.events = []
         self.timers = []
 
-    def addFilter(self, action, name=None, args=None, remote=None, button=None, repeat='00'):
+    # pylint: disable=R0913
+    def addFilter(self, action, name=None, args=None, events=None, maxTime=None,
+            remote=None, button=None, repeat='00', stopIfMatch=False):
         """None works as wildcard for remote, button, repeat.
         remote and button must always match literally.
+        Specify either remote/button/repeat or events.
+        events is either a single Event or a list of Event objects.
+        If events is a list, the filter triggers, if all events are
+        happening within maxTime with no other events in between.
         if more than one filters match, they are executed in their
         defined order. If a filter sets stopFiltering to True, the following filters
         will be ignored.
         args can be a single value or a list of arguments"""
 
-        self.filters.append((Event(name=name, remote=remote, button=button, repeat=repeat),
-             action, args))
+        assert not (events and (remote or button)), \
+             "events and remote/button exclude each other"
+        if not events:
+            events = Event(remote=remote, button=button, repeat=repeat)
+        if not isinstance(events, list):
+            events = [events]
+        self.filters.append(Filter(name, events, action, args, maxTime,
+             stopIfMatch=stopIfMatch))
 
     # pylint: disable=R0913
     def addTimer(self, action, args=None, name=None, minute=None, hour=None,
@@ -327,25 +378,18 @@ class Worker(object):
 
     def execute(self, event):
         """for now, return True if any filter matched"""
+        if event:
+            self.events.append(event)
         for timer in self.timers:
             timer.trigger()
         if event:
-            foundFilter = False
-            for fltr, action, args in self.filters:
-                if fltr == event:
-                    foundFilter = True
-                    if 'f' in OPTIONS.debug:
-                        LOGGER.debug('executing filter %s' % str(fltr))
-                    if args:
-                        if isinstance(args, list):
-                            stopFiltering = action(*args) # pylint: disable=W0142
-                        else:
-                            stopFiltering = action(args)
-                    else:
-                        stopFiltering = action()
-                    if stopFiltering is True:
+            matchingFilters = list(x for x in self.filters if x.matches(self.events))
+            for fltr in matchingFilters:
+                if fltr.matches(self.events):
+                    fltr.execute()
+                    if fltr.stopIfMatch:
                         break
-            return foundFilter
+            return len(matchingFilters) > 0
 
 def currentConsole():
     """returns the current fg console"""
