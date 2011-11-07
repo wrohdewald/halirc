@@ -26,10 +26,11 @@ Harmony: Denon Lautstaerke und Mute dito
 
 import os
 
-from lib import parseOptions, initLogger, Event
+import daemon
+
+from lib import parseOptions, initLogger
 parseOptions()
-initLogger()
-from lib import Irw, Worker, LOGGER
+from lib import Irw, Event, Worker, LOGGER, OPTIONS
 from denon import Denon
 from lgtv import LGTV
 from vdr import VDRServer
@@ -87,6 +88,7 @@ class MorningAction(object):
 def main():
     """define main, avoid to pollute global namespace"""
     # pylint: disable=W0603
+    initLogger()
     irw = Irw()
     myDenon = Denon()
     myLG = LGTV()
@@ -147,4 +149,8 @@ def main():
             LOGGER.error('%s: %s' % (event, exception), exc_info=True)
 
 if __name__ == "__main__":
-    main()
+    if OPTIONS.background:
+        with daemon.DaemonContext():
+            main()
+    else:
+        main()
