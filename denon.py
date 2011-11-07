@@ -53,7 +53,7 @@ class Denon(SerialDevice):
         # virtually never close because the Denon sends events
         # by its own if it is operated by other means (IR, front knobs)
         self.closeAfterUnusedSeconds = 10000000
-        self.delays = {'SIMV': 2.0, 'xW..': 2.0}
+        self.delays = {'SIMV': 2.0, 'PW..': 2.0}
 
     def setEvent(self, event):
         """event is the next event to be processed or None if there
@@ -65,19 +65,21 @@ class Denon(SerialDevice):
     def init(self):
         """initialize the Denon to sane values"""
         if not self.isPoweredOn():
-            self.send('PWON')
-            while self.current['PW'] != 'ON':
-                self.getResponses()
+            while True:
                 self.send('PWON')
                 time.sleep(0.5)
+                self.getResponses()
+                if self.current['PW'] == 'ON':
+                    break
 
     def standby(self):
         """set the device to standby"""
         if self.isPoweredOn():
+            self.getResponses()
             while self.current['PW'] == 'ON':
-                self.getResponses()
                 self.send('PWSTANDBY')
                 time.sleep(0.5)
+                self.getResponses()
         self.mutedVolume = None
 
     def delay(self, dummyCommand=None, dummyParameters=None):
