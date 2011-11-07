@@ -54,13 +54,13 @@ class MorningAction(object):
         return True
 
     def start(self):
-        """start channel 93 loudly"""
+        """start channel NDR 90,3 loudly"""
         LOGGER.debug('morning.start')
         if self.wanted():
             self.myDenon.init()
             self.myDenon.sendIfNot('SIDBS/SAT')
-            self.myDenon.sendIfNot('MV57')
-            self.prevChannel = self.myVdr.getChannel()
+            self.myDenon.sendIfNot('MV60')
+            self.prevChannel = self.myVdr.getChannel()[1]
             if self.prevChannel != 'NDR 90,3':
                 self.myVdr.gotoChannel('NDR 90,3')
             else:
