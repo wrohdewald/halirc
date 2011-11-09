@@ -255,6 +255,7 @@ def initLogger():
     else:
         formatter = logging.Formatter("%(relativeCreated)d %(name)s: %(levelname)s %(message)s")
     handler.setFormatter(formatter)
+    return LOGGER
 
 class Timer(object):
     """hold attributes needed for a timer"""
@@ -390,3 +391,6 @@ class Worker(object):
                     if fltr.stopIfMatch:
                         break
             return len(matchingFilters) > 0
+
+parseOptions()
+initLogger()

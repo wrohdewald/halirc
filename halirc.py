@@ -28,8 +28,6 @@ import os
 
 import daemon
 
-from lib import parseOptions, initLogger
-parseOptions()
 from lib import Irw, Event, Worker, LOGGER, OPTIONS
 from denon import Denon
 from lgtv import LGTV
@@ -88,7 +86,6 @@ class MorningAction(object):
 def main():
     """define main, avoid to pollute global namespace"""
     # pylint: disable=W0603
-    initLogger()
     irw = Irw()
     myDenon = Denon()
     myLG = LGTV()
