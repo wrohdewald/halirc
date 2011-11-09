@@ -29,36 +29,37 @@ class LGTV(SerialDevice):
     def __init__(self, device='/dev/LGPlasma'):
         SerialDevice.__init__(self, device)
         self.commands = {
-            'poweron':'ka 00 01',
-            'poweroff': 'ka 00 00',
-            'muteon': 'ke 00 00',
-            'muteoff': 'ke 00 01',
-            'osdon': 'kl 00 01',
-            'osdoff': 'kl 00 00',
-            'aspect43': 'kc 00 01',
-            'aspect169': 'kc 00 02',
-            'aspectzoom': 'kc 00 04',
-            'aspectoriginal': 'kc 00 06',
-            'aspect149': 'kc 00 07',
-            'aspectscan': 'kc 00 09',
-            'aspectfullwidth': 'kc 00 0B',
-            'inputdtv': 'xb 00 00',
-            'inputanalog': 'xb 00 10',
-            'inputav': 'xb 00 20',
-            'inputcomponent': 'xb 00 40',
-            'inputhdmi1': 'xb 00 70',
-            'inputhdmi2': 'xb 00 71',
-            'mutescreenoff': 'kd 00 00',
-            'mutescreenon': 'kd 00 01',
-            'mutevideoon': 'kd 00 10'
+            'poweron': ('ka', '01'),
+            'poweroff': ('ka', '00'),
+            'muteon': ('ke', '00'),
+            'muteoff': ('ke', '01'),
+            'osdon': ('kl', '01'),
+            'osdoff': ('kl', '00'),
+            'aspect43': ('kc', '01'),
+            'aspect169': ('kc', '02'),
+            'aspectzoom': ('kc', '04'),
+            'aspectoriginal': ('kc', '06'),
+            'aspect149': ('kc', '07'),
+            'aspectscan': ('kc', '09'),
+            'aspectfullwidth': ('kc', '0B'),
+            'inputdtv': ('xb', '00'),
+            'inputanalog': ('xb', '10'),
+            'inputav': ('xb', '20'),
+            'inputcomponent': ('xb', '40'),
+            'inputhdmi1': ('xb', '70'),
+            'inputhdmi2': ('xb', '71'),
+            'mutescreenoff': ('kd', '00'),
+            'mutescreenon': ('kd', '01'),
+            'mutevideoon': ('kd', '10')
         }
         for zoom in range(1, 17):
-            self.commands['aspectcinema%d' % zoom] = 'kc 00 %02X' % (zoom + 15)
+            self.commands['aspectcinema%d' % zoom] = ('kc', '%02X' % (zoom + 15))
 
         for volume in range(0, 64):
-            self.commands['volume%d' % volume] = 'kf 00 %02X' % volume
+            self.commands['volume%d' % volume] = ('kf', '%02X' % volume)
         self.videoMuted = None
-        self.tvTimeout = 30
+        self.tvTimeout = 300
+        self.setID = '01'
 
     def setEvent(self, event):
         """event is the next event to be processed or None if there
@@ -71,20 +72,26 @@ class LGTV(SerialDevice):
 
     def init(self):
         """init the LGTV for VDR usage"""
-        self.sendIfNot('01', 'poweron')
-        self.sendIfNot('00', 'muteon')
-        self.sendIfNot('00', 'volume0')
-        self.sendIfNot('09', 'aspectscan')
-        self.sendIfNot('00', 'mutescreenoff')
+        self.send('poweron')
+        self.send('volume0')
+        self.send('aspectscan')
+        self.send('mutescreenoff')
 
-    def sendIfNot(self, wantedStatus, cmd):
-        """if wantedStatus for cmd is not set in LGTV, set it"""
+    def send(self, cmd):
+        """if wanted value for cmd is not set in LGTV, set it"""
+        command, value = self.parse(cmd)
         status = self.getAnswer(cmd)
-        if status != wantedStatus:
-            if 's' in OPTIONS.debug:
-                LOGGER.debug(
-                  'status is %s but we want %s' % (status, wantedStatus))
-            return self.send(cmd)
+        if status == value:
+            return status
+        if 's' in OPTIONS.debug:
+            LOGGER.debug(
+              'status is %s but we want %s' % (status, value))
+        msg = ' '.join([command, self.setID, value])
+        answer = self.communicate(msg + '\r', True, eol='x')
+        if not re.match(r'.*OK', answer):
+            msg = '%s %s: ERROR %s' % (cmd, msg, answer)
+            LOGGER.error(msg)
+        return answer
 
     def parse(self, cmd):
         """translate the human readable commands into LG command sequences"""
@@ -95,10 +102,10 @@ class LGTV(SerialDevice):
 
     def getAnswer(self, cmd):
         """ask the LGTV for a value"""
-        command = self.parse(cmd)
-        command = command[:6] + 'ff'
+        command, _ = self.parse(cmd)
+        msg = ' '.join([command, self.setID, 'ff'])
         for _ in range(0, 5):
-            answer = self.communicate(command + '\r', True, eol='x')
+            answer = self.communicate(msg + '\r', True, eol='x')
             match = re.match(r'.*OK(.*)$', answer)
             if match:
                 break
@@ -106,15 +113,6 @@ class LGTV(SerialDevice):
             LOGGER.debug('LG.getAnswer:%s ' % answer)
         if match:
             return match.groups()[0]
-
-    def send(self, cmd):
-        """send cmd to LGTV and return the answer"""
-        command = self.parse(cmd)
-        answer = self.communicate(command + '\r', True, eol='x')
-        if not re.match(r'.*OK', answer):
-            msg = '%s %s: ERROR %s' % (cmd, command, answer)
-            LOGGER.error(msg)
-        return answer
 
     def isPoweredOn(self):
         """is the LGTV on?"""
