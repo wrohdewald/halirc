@@ -84,7 +84,7 @@ class MorningAction(object):
             os.remove(self.silencer)
 
 def main():
-    """define main, avoid to pollute global namespace"""
+    """define main, avoid polluting global namespace"""
     # pylint: disable=W0603
     irw = Irw()
     myDenon = Denon()
@@ -134,8 +134,15 @@ def main():
 
     morning = MorningAction(worker, myVdr, myDenon, myLG) # pylint: disable=W0612
 
+    loggedEmptyQueue = False
     while True:
         event = irw.read()
+        if not event:
+            if not loggedEmptyQueue:
+                LOGGER.debug('Event queue is empty')
+                loggedEmptyQueue = True
+        else:
+            loggedEmptyQueue = False
         for appliance in appliances:
             appliance.setEvent(event)
         try:
