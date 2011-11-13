@@ -19,7 +19,7 @@ along with this program if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """
 
-import sys, re, datetime
+import sys, re, datetime, time
 
 from lib import SerialDevice, OPTIONS, LOGGER, elapsedSince
 
@@ -45,9 +45,10 @@ class LGTV(SerialDevice):
             'inputdtv': ('xb', '00'),
             'inputanalog': ('xb', '10'),
             'inputav': ('xb', '20'),
-            'inputcomponent': ('xb', '40'),
-            'inputhdmi1': ('xb', '70'),
-            'inputhdmi2': ('xb', '71'),
+            'inputcomponent1': ('xb', '40'),
+            'inputcomponent2': ('xb', '41'),
+            'inputhdmi1': ('xb', '90'),
+            'inputhdmi2': ('xb', '91'),
             'mutescreenoff': ('kd', '00'),
             'mutescreenon': ('kd', '01'),
             'mutevideoon': ('kd', '10')
@@ -78,7 +79,12 @@ class LGTV(SerialDevice):
         self.send('mutescreenoff')
 
     def send(self, cmd):
-        """if wanted value for cmd is not set in LGTV, set it"""
+        """if wanted value for cmd is not set in LGTV, set it.
+        If we are acting on an event from the LG remote:
+        the LG TV is quite fast in executing those events, so
+        when we get here, the LG TV should already return the
+        wanted value if it received the LG remote event too
+        """
         command, value = self.parse(cmd)
         status = self.getAnswer(cmd)
         if status == value:
@@ -88,8 +94,8 @@ class LGTV(SerialDevice):
               'status is %s but we want %s' % (status, value))
         msg = ' '.join([command, self.setID, value])
         answer = self.communicate(msg + '\r', True, eol='x')
-        if not re.match(r'.*OK', answer):
-            msg = '%s %s: ERROR %s' % (cmd, msg, answer)
+        if not re.match(r'.*OK', answer) and answer:
+            msg = '%s %s: ERROR, we got:%s:' % (cmd, msg, answer)
             LOGGER.error(msg)
         return answer
 
@@ -104,11 +110,8 @@ class LGTV(SerialDevice):
         """ask the LGTV for a value"""
         command, _ = self.parse(cmd)
         msg = ' '.join([command, self.setID, 'ff'])
-        for _ in range(0, 5):
-            answer = self.communicate(msg + '\r', True, eol='x')
-            match = re.match(r'.*OK(.*)$', answer)
-            if match:
-                break
+        answer = self.communicate(msg + '\r', True, eol='x')
+        match = re.match(r'.*OK(.*)$', answer)
         if 'r' in OPTIONS.debug:
             LOGGER.debug('LG.getAnswer:%s ' % answer)
         if match:

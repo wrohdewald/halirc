@@ -19,14 +19,15 @@ along with this program if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 
+Everything in halirc.py is just an example. You want to start
+your own mylirc.py and to there whatever you want.
+
 TODO
 Harmony: LG alles!!!!!! separate Codes vom Receiver12V anlernen
 Harmony: Denon Lautstaerke und Mute dito
 """
 
-import os
-
-import daemon
+import os, daemon
 
 from lib import Irw, Event, Worker, LOGGER, OPTIONS
 from denon import Denon
@@ -120,12 +121,13 @@ def main():
     worker.addFilter(myLG.mutevideo, args='Power2', remote='Hauppauge6400')
     worker.addFilter(myLG.init, remote='Receiver12V', button='Power')
     worker.addFilter(myLG.send, args='poweroff', remote='Receiver12V', button='0')
-    worker.addFilter(myLG.send, args='inputdtv', remote='Receiver12V', button='1')
+    worker.addFilter(myLG.send, args='poweron', remote='Receiver12V', button='1')
     worker.addFilter(myLG.send, args='inputhdmi1', remote='Receiver12V', button='2')
     worker.addFilter(myLG.send, args='inputhdmi2', remote='Receiver12V', button='3')
-    worker.addFilter(myLG.send, args='inputcomponent', remote='Receiver12V', button='4')
-    worker.addFilter(myLG.send, args='inputanalog', remote='Receiver12V', button='5')
+    worker.addFilter(myLG.send, args='inputcomponent1', remote='Receiver12V', button='4')
+    worker.addFilter(myLG.send, args='inputdtv', remote='Receiver12V', button='5')
 
+    # example for a key sequence:
     # depending on how small the distance between pressing 8 and 9, there might
     # be additional events with repeat='01' between. How to handle this cleanly?
     worker.addFilter(myDenon.send, name='tuner2', args='SITUNER',
