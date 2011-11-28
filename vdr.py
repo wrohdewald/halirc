@@ -19,67 +19,159 @@ along with this program if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """
 
-from lib import Device, OPTIONS, LOGGER
-from telnetlib import Telnet
+from twisted.protocols.basic import LineOnlyReceiver
+from twisted.conch.telnet import Telnet
+from twisted.internet.endpoints import TCP4ClientEndpoint
+from twisted.internet.defer import Deferred, succeed
+from twisted.internet import reactor
+from twisted.internet.protocol import ClientFactory
 
-class VDRServer(Device):
-    """talks to VDR"""
-    def __init__(self, name='VDR', host='localhost', port=6419):
-        Device.__init__(self, name)
+
+from lib import Serializer, Message, OPTIONS, LOGGER, elapsedSince
+
+class VdrMessage(Message):
+    """holds content of a message from or to Vdr"""
+    def __init__(self, decoded=None, encoded=None):
+        """for the Denon we only use the machine form, its
+        readability is acceptable"""
+        Message.__init__(self, decoded, encoded)
+
+    def _setAttributes(self, decoded, encoded):
+        self._decoded = self._encoded = decoded or encoded
+
+    def command(self):
+        """the human readable command"""
+        # TODO: subcommands
+        return self._encoded[:4] if self._encoded else ''
+
+    def value(self):
+        """the human readable command"""
+        # TODO: subcommands
+        return self._encoded[4:] if self._encoded else ''
+
+class VdrProtocol(LineOnlyReceiver, Telnet, Serializer):
+    """talk to vdr"""
+    # pylint: disable=R0904
+    # pylint finds too many public methods
+    delimiter = '\r\n'
+
+    def __init__(self):
+        self.wrapper = None
+        Telnet.__init__(self)
+        Serializer.__init__(self)
+
+    def disableRemote(self, option):
+        """disable a remote option"""
+
+    def disableLocal(self, option):
+        """disable a local option"""
+
+    def lineReceived(self, line):
+        """we got a full line from vdr"""
+        if line.startswith('221 '):
+            # this is an error because we should have
+            # closed the connection ourselves after a
+            # much shorter timeout than the server timeout
+            LOGGER.error('vdr closes connection, timeout')
+            self.wrapper.close()
+            return
+        if line.startswith('220 '):
+            self.wrapper.openDeferred.callback(None)
+            return
+        if not self.wrapper.protocol:
+            LOGGER.error('VDR server is not ready:%s' % line)
+            self.transport.loseConnection()
+        if line.split(' ')[0] not in ['250', '354', '550']:
+            LOGGER.error('from %s: %s' % (self.wrapper.name(), line))
+        else:
+            if 'r' in OPTIONS.debug:
+                LOGGER.debug('from %s: %s' % (self.wrapper.name(), line))
+        if self.wrapper.tasks.running:
+            self.wrapper.tasks.gotAnswer(VdrMessage(line))
+        else:
+            LOGGER.error('vdr sent data without being asked:%s' % line)
+
+class Vdr(Serializer):
+
+    """talks to VDR. This is a wrapper around the Telnet protocol
+    becaus we want to automatically close the connection after
+    some timeout and automatically reopen it when needed. Vdr
+    can only handle one client simultaneously."""
+
+    # TODO: an event generator watching syslog for things like
+    # switching channel
+    eol = '\r\n'
+    message = VdrMessage
+
+    def __init__(self, hal, host='localhost', port=6419):
+        Serializer.__init__(self)
+        self.hal = hal
         self.host = host
         self.port = port
-        self.telnet = None
+        self.protocol = None
+        self.transport = None
+        self.openDeferred = None
+        self.prevChannel = None
+        self.closeTimeout = 5
 
     def open(self):
         """open connection if not open"""
-        if not self.telnet:
-            if not Device.open(self):
-                return False
-            self.telnet = Telnet()
-            self.telnet.open(self.host, self.port, timeout=10)
-            greeting = self.telnet.read_until('\n', timeout=2)[:-1]
-            if not greeting:
-                greeting = 'VDR server is probably in use'
-            if greeting.split(' ')[0] != '220':
-                LOGGER.error('VDR server is not ready: %s' % greeting)
-                self.close(openFailed=True)
-                return False
-        return True
-
-    def close(self, openFailed=False):
-        """close connection if open"""
-        if self.telnet:
-            self.telnet.write('quit\n')
-            self.telnet.close()
-            self.telnet = None
-        Device.close(self, openFailed)
-
-    def send(self, cmd):
-        """send data to VDR"""
-        if not self.open():
-            return ''
-        if cmd[-1] != '\n':
-            cmd = cmd + '\n'
-        if 's' in OPTIONS.debug:
-            LOGGER.debug('sending to %s: %s' % (type(self).__name__, cmd[:-1]))
-        self.telnet.write(cmd)
-        result = self.telnet.read_until('\n')[:-2] # line end is CRLF
-        if result.split(' ')[0] not in ['250', '354', '550']:
-            LOGGER.error('from %s: %s' % (type(self).__name__, result))
+        def gotProtocol(result):
+            """now we have a a connection, save it"""
+            self.protocol = result
+            self.protocol.wrapper = self
+            self.transport = result.transport
+        if not self.protocol:
+            LOGGER.debug('opening vdr')
+            point = TCP4ClientEndpoint(reactor, self.host, self.port)
+            factory = ClientFactory()
+            factory.protocol = VdrProtocol
+            point.connect(factory).addCallback(gotProtocol)
+            self.openDeferred = Deferred()
+            result = self.openDeferred
         else:
-            if 'r' in OPTIONS.debug:
-                LOGGER.debug('from %s: %s' % (type(self).__name__, result))
+            result = succeed(None)
+        reactor.callLater(5, self.close)
         return result
 
-    def getChannel(self,):
-        """returns current channel number and name"""
-        answer = self.send('chan').split(' ')
-        if answer[0] != '250':
-            return 'nochannelfound'
-        return answer[1], ' '.join(answer[2:])
+    def close(self):
+        """close connection if open"""
+        if self.protocol:
+            if not (self.tasks.running or self.tasks.queued):
+                if elapsedSince(self.tasks.allRequests[-1].sendTime) > self.closeTimeout - 1:
+                    LOGGER.debug('closing vdr')
+                    self.protocol.transport.write('quit\n')
+                    self.protocol.transport.loseConnection()
+                    self.protocol = None
 
-    def gotoChannel(self, channel):
+    def lineReceived(self, line):
+        """proxy"""
+        self.protocol.lineReceived(line)
+
+    def send(self, *args):
+        """unconditionally send cmd"""
+        _, msg = self.args2message(args)
+        return self.push(msg)
+
+    def getChannel(self, dummyResult=None):
+        """returns current channel number and name"""
+        def got(result):
+            """we got the current channel"""
+            result = result.decoded.split(' ')
+            if result[0] != '250':
+                return None, None
+            else:
+                return result[1], ' '.join(result[2:])
+        return self.push(self.message('chan')).addCallback(got)
+
+    def gotoChannel(self, dummyResult, channel):
         """go to a channel if not yet there.
         Channel number and name are both accepted."""
-        if channel not in self.getChannel():
-            self.send('chan %s' % channel)
+        def got(result):
+            """we got the current channel"""
+            if channel not in result:
+                self.prevChannel = result[0]
+                return self.push(self.message('chan %s' % channel))
+            else:
+                return succeed(None)
+        return self.getChannel().addCallback(got)

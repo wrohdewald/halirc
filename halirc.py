@@ -29,23 +29,34 @@ Harmony: Denon Lautstaerke und Mute dito
 
 import os, daemon
 
-from lib import Irw, Event, Worker, LOGGER, OPTIONS
-from denon import Denon
-from lgtv import LGTV
-from vdr import VDRServer
+from twisted.internet import reactor
+# this code ensures that pylint gives no errors about
+# undefined attributes:
+reactor.callLater = reactor.callLater
+reactor.run = reactor.run
+reactor.connectUNIX = reactor.connectUNIX
+
+from twisted.internet.serialport import SerialPort
+
+from lib import OPTIONS, LOGGER, Timer, Hal, Filter, RemoteEvent, IrwFactory
+from lgtv import LGTVProtocol
+from denon import DenonProtocol
+from vdr import Vdr
+
+Timer.interval = 20
 
 class MorningAction(object):
     """very custom..."""
-    def __init__(self, worker, myVdr, myDenon, myLG):
+    def __init__(self, hal, myVdr, myDenon, myLG):
         self.myVdr = myVdr
         self.myDenon = myDenon
         self.myLG = myLG
-        self.prevChannel = None
         self.silencer = '/home/wr/ausschlafen'
         workdays = [0, 1, 2, 3, 4]
-        worker.addTimer(self.start, hour=3, minute=58, weekday=workdays)
-        worker.addTimer(self.changeVolume, hour=4, minute=21, weekday=workdays)
-        worker.addTimer(self.end, hour=4, minute=40, weekday=workdays)
+
+        hal.addTimer(self.start, hour=3, minute=58, weekday=workdays)
+        hal.addTimer(self.changeVolume, hour=4, minute=21, weekday=workdays)
+        hal.addTimer(self.end, hour=4, minute=40, weekday=workdays)
 
     def wanted(self):
         """do we actually want to be triggered?"""
@@ -57,14 +68,10 @@ class MorningAction(object):
         """start channel NDR 90,3 loudly"""
         LOGGER.debug('morning.start')
         if self.wanted():
-            self.myDenon.init()
-            self.myDenon.sendIfNot('SIDBS/SAT')
-            self.myDenon.sendIfNot('MV60')
-            self.prevChannel = self.myVdr.getChannel()[1]
-            if self.prevChannel != 'NDR 90,3':
-                self.myVdr.gotoChannel('NDR 90,3')
-            else:
-                self.prevChannel = None
+            self.myDenon.poweron().addCallback(
+                self.myDenon.send, 'SIDBS/SAT').addCallback(
+                self.myDenon.send, 'MV60')
+            self.myVdr.gotoChannel(None, 'NDR 90,3')
             self.myLG.standby()
 
     def changeVolume(self):
@@ -77,80 +84,61 @@ class MorningAction(object):
         """off to train"""
         LOGGER.debug('morning.end')
         if self.wanted():
-            self.myDenon.standby()
-            if self.prevChannel:
-                self.myVdr.gotoChannel(self.prevChannel)
-            self.myLG.standby()
+            self.myDenon.standby(None)
+            if self.myVdr.prevChannel:
+                self.myVdr.gotoChannel(None, self.myVdr.prevChannel)
+            self.myLG.standby(None)
         elif os.path.exists(self.silencer):
             os.remove(self.silencer)
 
+class MyHal(Hal):
+    """an example for user definitions"""
+    def setup(self, denon, vdr, lgtv):
+        """my own setup"""
+        # pylint: disable=W0201
+        # pylint - setup may define additional attributes
+        self.denon = denon
+        self.filters.append(Filter(RemoteEvent('AcerP1165', 'PgUp'), denon.mute))
+        self.filters.append(Filter(RemoteEvent('AcerP1165', 'PgDown'), denon.queryStatus))
+        self.filters.append(Filter(RemoteEvent('AcerP1165', '0'), denon.send, args='SIDBS/SAT'))
+        self.filters.append(Filter(RemoteEvent('AcerP1165', '1'), denon.send, args='SICD'))
+        self.filters.append(Filter(RemoteEvent('AcerP1165', '2'), denon.send, args='SITUNER'))
+        self.filters.append(Filter(RemoteEvent('AcerP1165', '3'), denon.send, args='SIDVD'))
+        self.filters.append(Filter(RemoteEvent('AcerP1165', '4'), denon.send, args='SIVDP'))
+        self.filters.append(Filter(RemoteEvent('AcerP1165', '5'), denon.send, args='SIVCR-1'))
+        self.filters.append(Filter(RemoteEvent('AcerP1165', '6'), denon.send, args='SIVCR-2'))
+        self.filters.append(Filter(RemoteEvent('AcerP1165', '7'), denon.send, args='SIV.AUX'))
+        self.filters.append(Filter(RemoteEvent('AcerP1165', '8'), denon.send, args='SICDR.TAPE'))
+        self.filters.append(Filter(RemoteEvent('AcerP1165', '9'), denon.send, args='SITV'))
+        self.filters.append(Filter(RemoteEvent('AcerP1165', 'Left'), denon.poweron))
+        self.filters.append(Filter(RemoteEvent('AcerP1165', 'Right'), denon.standby))
+        self.filters.append(Filter(RemoteEvent('AcerP1165', 'Down'), denon.volume, args='DOWN'))
+        self.filters.append(Filter(RemoteEvent('AcerP1165', 'Up'), denon.volume, args='UP'))
+
+        MorningAction(self, vdr, denon, lgtv)
+
+        self.filters.append(Filter(RemoteEvent('Receiver12V', '0'), lgtv.standby))
+        self.filters.append(Filter(RemoteEvent('Receiver12V', '1'), lgtv.send, args='power:on'))
+        self.filters.append(Filter(RemoteEvent('Hauppauge6400'), lgtv.mutescreen, args='Power2'))
+        self.filters.append(Filter(RemoteEvent('Receiver12V', '2'), lgtv.send, args='input:HDMI1'))
+        self.filters.append(Filter(RemoteEvent('Receiver12V', '3'), lgtv.send, args='input:HDMI2'))
+        self.filters.append(Filter(RemoteEvent('Receiver12V', '4'), lgtv.send, args='input:component'))
+        self.filters.append(Filter(RemoteEvent('Receiver12V', '5'), lgtv.send, args='input:DTV'))
+
+
 def main():
-    """define main, avoid polluting global namespace"""
-    # pylint: disable=W0603
-    irw = Irw()
-    myDenon = Denon()
-    myLG = LGTV()
-    myVdr = VDRServer()
-    appliances = [myDenon, myLG, myVdr]
-
-    worker = Worker()
-
-    # use buttons of an unused remote for controlling
-    # the Denon because the IR receiver of the Denon
-    # is too far away
-    worker.addFilter(myDenon.volume, args='UP', remote='AcerP1165', button='Up', repeat=None)
-    worker.addFilter(myDenon.volume, args='DOWN', remote='AcerP1165', button='Down', repeat=None)
-    worker.addFilter(myDenon.mute, name='mute', remote='AcerP1165', button='PgUp')
-    worker.addFilter(myDenon.queryStatus, remote='AcerP1165', button='PgDown')
-    worker.addFilter(myDenon.send, args='SIDBS/SAT', remote='AcerP1165', button='0')
-    worker.addFilter(myDenon.send, args='SICD', remote='AcerP1165', button='1')
-    worker.addFilter(myDenon.send, args='SITUNER', remote='AcerP1165', button='2')
-    worker.addFilter(myDenon.send, args='SIDVD', remote='AcerP1165', button='3')
-    worker.addFilter(myDenon.send, args='SIVDP', remote='AcerP1165', button='4')
-    worker.addFilter(myDenon.send, args='SIVCR-1', remote='AcerP1165', button='5')
-    worker.addFilter(myDenon.send, args='SIVCR-2', remote='AcerP1165', button='6')
-    worker.addFilter(myDenon.send, args='SIV.AUX', remote='AcerP1165', button='7')
-    worker.addFilter(myDenon.send, args='SICDR.TAPE', remote='AcerP1165', button='8')
-    worker.addFilter(myDenon.send, args='SITV', remote='AcerP1165', button='9')
-    worker.addFilter(myDenon.send, args='PWON', remote='AcerP1165', button='Left')
-    worker.addFilter(myDenon.send, args='PWSTANDBY', remote='AcerP1165', button='Right')
-    worker.addFilter(myDenon.send, args='TMAM', remote='AcerP1165', button='Freeze')
-    worker.addFilter(myDenon.send, args='TMFM', remote='AcerP1165', button='Hide')
-    worker.addFilter(os.system, args='dose_ein 3', button='Zoom')
-    worker.addFilter(os.system, args='dose_aus 3', button='Resync')
-    worker.addFilter(myLG.mutevideo, args='Power2', remote='Hauppauge6400')
-    worker.addFilter(myLG.init, remote='Receiver12V', button='Power')
-    worker.addFilter(myLG.send, args='poweroff', remote='Receiver12V', button='0')
-    worker.addFilter(myLG.send, args='poweron', remote='Receiver12V', button='1')
-    worker.addFilter(myLG.send, args='inputhdmi1', remote='Receiver12V', button='2')
-    worker.addFilter(myLG.send, args='inputhdmi2', remote='Receiver12V', button='3')
-    worker.addFilter(myLG.send, args='inputcomponent1', remote='Receiver12V', button='4')
-    worker.addFilter(myLG.send, args='inputdtv', remote='Receiver12V', button='5')
-
-    # example for a key sequence:
-    # depending on how small the distance between pressing 8 and 9, there might
-    # be additional events with repeat='01' between. How to handle this cleanly?
-    worker.addFilter(myDenon.send, name='tuner2', args='SITUNER',
-           events=[Event(remote='Receiver12V', button='8', repeat=None),
-                   Event(remote='Receiver12V', button='9', repeat=None)])
-
-    morning = MorningAction(worker, myVdr, myDenon, myLG) # pylint: disable=W0612
-
-    loggedEmptyQueue = False
-    while True:
-        event = irw.read()
-        if not event:
-            if not loggedEmptyQueue:
-                LOGGER.debug('Event queue is empty')
-                loggedEmptyQueue = True
-        else:
-            loggedEmptyQueue = False
-        for appliance in appliances:
-            appliance.setEvent(event)
-        try:
-            worker.execute(event)
-        except Exception as exception: # pylint: disable=W0703
-            LOGGER.error('%s: %s' % (event, exception), exc_info=True)
+    """do not pollute global namespace"""
+    OPTIONS.debug = 'asricf'
+    hal = MyHal()
+    denon = DenonProtocol(hal)
+    vdr = Vdr(hal)
+    lgtv = LGTVProtocol(hal)
+    hal.setup(denon, vdr, lgtv)
+    SerialPort(denon, '/dev/denon', reactor)
+    SerialPort(lgtv, '/dev/LGPlasma', reactor)
+    reactor.connectUNIX('/var/run/lirc/lircd', IrwFactory(hal))
+    reactor.callLater(Timer.interval, hal.checkTimers)
+    reactor.run()
 
 if __name__ == "__main__":
     if OPTIONS.background:

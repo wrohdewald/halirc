@@ -19,226 +19,107 @@ along with this program if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """
 
-import time, datetime
-from lib import OPTIONS, LOGGER, SerialDevice, elapsedSince
+from lib import Message, MessageEvent, Serializer
+from twisted.protocols.basic import LineOnlyReceiver
+from twisted.internet.defer import succeed
 
-class Denon(SerialDevice):
-    """support the more important things the denon interface
-    lets us do. Denon has published AVR-3805SerialProtocolv4-0.PDF
-    which mostly also works for my AVR-2805 and maybe others.
 
-    The Denon has a problem with commands in fast succession: after
-    some commands, some others are ignored if they are sent too soon.
-    Between SI..SI (Select Input) a small time is needed. But for
-    MV (Master Volume) after SI, we must wait for about 2 seconds,
-    or the MV command will silently be ignored. There might be
-    more sophisticated ways to handle this like waiting for a
-    response with SI - but that would not be simpler. If several
-    SI are sent in quick sequence, Denon will send a response for
-    only one of them even if it executes them all
-    self.delays defines waiting times for between command A and B
+class DenonMessage(Message):
+    """holds content of a message from or to a Denon"""
+    def __init__(self, decoded=None, encoded=None):
+        """for the Denon we only use the machine form, its
+        readability is acceptable"""
+        Message.__init__(self, decoded, encoded)
 
-    An alternative solution is to repeatedly send the command until
-    the Denon sends the wanted answer. Like def standby(). But some
-    Denon commands never send answers at all...
+    def _setAttributes(self, decoded, encoded):
+        self._decoded = self._encoded = decoded or encoded
+        if len(self.encoded) == 2:
+            self.ask = True
+            self._encoded += '?'
+            self._decoded += '?'
 
-    """
+    def command(self):
+        """the human readable command"""
+        # TODO: subcommands
+        return self._encoded[:2] if self._encoded else ''
 
-    def __init__(self, device='/dev/denon'):
-        SerialDevice.__init__(self, device)
-        self.mutedVolume = None
-        self.current = {}
-        self.lastSentCmd = None
-        self.lastSentTime = None
-        # virtually never close because the Denon sends events
-        # by its own if it is operated by other means (IR, front knobs)
-        self.closeAfterUnusedSeconds = 10000000
-        self.delays = {'SIMV': 2.0, 'PW..': 2.0}
-
-    def setEvent(self, event):
-        """event is the next event to be processed or None if there
-        was no event while timeout"""
-        SerialDevice.setEvent(self, event)
-        if not event:
-            self.getResponses()
-
-    def init(self):
-        """initialize the Denon to sane values"""
-        if not self.isPoweredOn():
-            while True:
-                self.send('PWON')
-                time.sleep(0.5)
-                self.getResponses()
-                if self.current['PW'] == 'ON':
-                    break
-
-    def standby(self):
-        """set the device to standby"""
-        if self.isPoweredOn():
-            self.getResponses()
-            while self.current['PW'] == 'ON':
-                self.send('PWSTANDBY')
-                time.sleep(0.5)
-                self.getResponses()
-        self.mutedVolume = None
-
-    def delay(self, dummyCommand=None, dummyParameters=None):
-        return 0.02
-
-    # pylint: disable=R0201
-    def parse(self, data):
-        """split data into key, index and value.
-        index is None if a request has only one return value"""
-        key, subcmd, index, maxIndex, value = data[:2], None, None, None, data[2:]
-        if value != '?':
-            if key == 'CV':
-                subcmd, value = value.split(' ')
-                subcommands = ['FL', 'FR', 'C', 'SW',
-                     'SL', 'SR', 'SBL', 'SBR', 'SB']
-                index = subcommands.index(subcmd)
-                maxIndex = len(subcommands)
-            elif key in ['Z1', 'Z2']:
-                if value in ['ON', 'OFF']:
-                    index = 2
-                elif value[0] in '0123456789':
-                    index = 1
-                else:
-                    index = 0
-                maxIndex = 3
-                subcmd = str(index)
-            elif key == 'TM':
-                if value in ['AM', 'FM']:
-                    index = 0
-                else:
-                    index = 1
-                maxIndex = 2
-                subcmd = str(index)
-        return key, subcmd, index, maxIndex, value
-
-    def updateStatus(self, data):
-        """update self.current with data received from Denon"""
-        assert data[2] != '?'
-        key, subcmd, index, maxIndex, value = self.parse(data)
-        oldValue = self.current.get(key, None)
-        if oldValue is not None and index is not None:
-            oldValue = oldValue[index]
-        if value != oldValue:
-            if 'c' in OPTIONS.debug:
-                LOGGER.debug('Denon: %s%s: %s --> %s' % (key, subcmd or '', oldValue, value))
-        if index is None:
-            self.current[key] = value
+    def value(self):
+        """the human readable value"""
+        if self.ask:
+            return ''
         else:
-            if key not in self.current:
-                self.current[key] = [None] * maxIndex
-            self.current[key][index] = value
+            return self._encoded[2:] if self._encoded else ''
 
-    def getResponses(self, expect=None):
-        """get all pending responses or events.
-        If expect (the expected response/event) is given,
-        return its last value received within this call or None
-        Since some commands take more time until they send
-        events, the main loop of halirc also calls us for polling
-        """
-        result = None
-        while True:
-            data = self.readline('\r')
-            if not data:
-                break
-            self.updateStatus(data)
-            key, _, _, _, value = self.parse(data)
-            if expect and key == self.parse(expect)[0]:
-                result = value
-                break # more responses will be read later
+class DenonProtocol(LineOnlyReceiver, Serializer):
+    """talk to a Denon AVR 2805 or similar"""
+    delimiter = '\r'
+    message = DenonMessage
+
+    def __init__(self, hal):
+        self.hal = hal
+        self.mutedVolume = None
+        # never close because the Denon sends events
+        # by its own if it is operated by other means (IR, front knobs)
+        self.delays = {'PW..': 1.5, '..PW': 0.02}
+        Serializer.__init__(self)
+
+    def delay(self, previous, this):
+        """do we need to wait before sending this command?"""
+        cmd1 = previous.message.humanCommand() if previous else ''
+        cmd2 = this.message.humanCommand()
+        question1 = previous.message.ask
+        question2 = this.message.ask
+        result = 0
+        if cmd1:
+            if cmd1 == cmd2 and not question1 and question2:
+                # the Denon might need a moment for its response
+                result = 0.05
+            elif not question1:
+                for key in (cmd1 + cmd2, cmd1 + '..', '..' + cmd2):
+                    if key in self.delays:
+                        result = max(result, self.delays[key])
         return result
 
-    def maybeDelay(self, cmd):
-        """do we need to wait before sending this command?"""
-        if not self.lastSentCmd:
-            return
-        cmd1 = self.lastSentCmd[:2]
-        cmd2 = cmd[:2]
-        delay = 0
-        for key in (cmd1 + cmd2, cmd1 + '..', '..' + cmd2):
-            if key in self.delays and self.delays[key] > delay:
-                delay = self.delays[key]
-        if delay:
-            stillWaiting = delay - elapsedSince(self.lastSentTime)
-            if stillWaiting > 0:
-                if 's' in OPTIONS.debug:
-                    LOGGER.debug('sleeping %s/%s between %s and %s' % ( \
-                        stillWaiting, delay, self.lastSentCmd, cmd))
-                time.sleep(stillWaiting)
+    def lineReceived(self, data):
+        """we got a line from Denon"""
+        msg = self.message(data)
+        if self.tasks.running and self.tasks.running.message.command() == msg.command():
+            self.tasks.gotAnswer(msg)
+        else:
+            # this has been triggered by other means like the
+            # original remote control or the front elements of Denon
+            self.hal.eventReceived(MessageEvent(msg))
 
-    def send(self, cmd):
-        """send cmd to Denon and return the answers if there are any
-        some commands will return an answer as different command or no answer
-        """
-        key, _, _, _, _ = self.parse(cmd)
-        self.maybeDelay(cmd)
-        if key != 'PW' and not self.isPoweredOn():
-            return ''
-        self.communicate(cmd + '\r')
-        if cmd[2] != '?':
-            self.lastSentCmd = cmd
-            self.lastSentTime = datetime.datetime.now()
-            if key == 'TM':
-                # the receiver does not confirm this
-                self.updateStatus(cmd)
-                return cmd
-            elif key == 'SV':
-                # the receiver does not confirm this
-                if cmd != 'SVSOURCE':
-                    self.updateStatus(cmd)
-                return cmd
-        return self.getResponses(cmd)
+    def ask(self, *args):
+        """always ask Denon, caching only means trouble"""
+        assert len(args[-1]) == 2, args
+        return self.push(self.message(args[-1][:2]))
 
-    def getAnswer(self, cmd):
-        """ask Denon unless we already know the current value"""
-        if cmd[:2] != 'PW' and not self.isPoweredOn():
-            LOGGER.error('Denon: in standby mode, we can only ask for PW')
-            return ''
-        command = self.parse(cmd)[0]
-        while not command in self.current:
-            self.send(command + '?')
-        return self.current[command]
+    def standby(self, *dummyArgs):
+        """switch off"""
+        self.mutedVolume = None
+        return self.send('PWSTANDBY')
 
-    def sendIfNot(self, cmd):
-        """if Denon is not on the wanted value, set it to it"""
-        _, _, _, _, value = self.parse(cmd)
-        if self.getAnswer(cmd) != value:
-            self.send(cmd)
+    def poweron(self, *dummyArgs):
+        """switch on"""
+        return self.send('PWON')
 
-    def isPoweredOn(self):
-        """is Denon powered on?"""
-        return self.getAnswer('PW') == 'ON'
+    def __sendIfNot(self, result, msg):
+        """result is the current value. If cmd differs, send it"""
+        if result.value() == msg.value():
+            return succeed(None)
+        else:
+            return self.push(msg)
 
-    def volume(self, newValue):
-        """change volume up or down"""
-        if self.isPoweredOn():
-            if self.mutedVolume:
-                self.mute()
-            else:
-                self.send('MV%s' % newValue)
+    def send(self, *args):
+        """when applicable ask Denon for current value before sending
+        new value"""
+        _, msg = self.args2message(args)
+        if msg.encoded in ['MVDOWN', 'MVUP']: # the current state is never UP or DOWN
+            return self.push(msg)
+        return self.ask(msg.humanCommand()).addCallback(self.__sendIfNot, msg)
 
-    def mute(self):
-        """toggle between mute/unmuted"""
-        if self.isPoweredOn():
-            if self.mutedVolume:
-                newMV = self.mutedVolume
-                self.mutedVolume = None
-            else:
-                while not 'MV' in self.current:
-                    self.send('MV?')
-                self.mutedVolume = self.current['MV']
-                if self.mutedVolume < '25':
-                    # denon was muted when halirc started
-                    self.mutedVolume = None
-                    newMV = '40'
-                else:
-                    newMV = '20'
-            self.send('MV%s' % newMV)
-
-    def queryStatus(self, full=False):
+    def queryStatus(self, dummyResult, full=False):
         """query Denon status. If full, try to query even those
         parameters we do not know about"""
         if full:
@@ -251,12 +132,44 @@ class Denon(SerialDevice):
         else:
             # only query commands that might actually exist.
             # if full query finds more, please add them here
-            commands = ['PS', 'ZM', 'PW', 'TP', 'MU', 'SI',
-                'MV', 'MS', 'TF', 'CV', 'Z1', 'Z2', 'TM', 'SR']
+            commands = ['PW', 'TP', 'MU', 'SI',
+                'MV', 'MS', 'TF', 'CV', 'Z2', 'TM', 'ZM']
+        deferred = succeed(None)
         for command in commands:
-            self.send('%s?' % command)
-        for _ in range(0, 10):
-            self.getResponses()
-        if 'r' in OPTIONS.debug:
-            LOGGER.debug('current status:%s ' % self.current)
+            deferred.addCallback(self.ask, command)
+        return deferred
 
+    def volume(self, dummyResult, newValue):
+        """change volume up or down or to a discrete value"""
+        def _volume1(result, newValue):
+            """result is ON or STANDBY"""
+            if result != 'ON':
+                return succeed(None)
+            if self.mutedVolume:
+                return self.mute(result)
+            else:
+                return self.send('MV%s' % newValue)
+        return self.ask(None, 'PW').addCallback(_volume1, newValue)
+
+    def mute(self, dummyResult=None):
+        """toggle between mute/unmuted"""
+        def _mute1(result):
+            """result is ON or STANDBY"""
+            if result != 'ON':
+                return
+            if self.mutedVolume:
+                newMV = self.mutedVolume
+                self.mutedVolume = None
+                return self.push('MV%s' % newMV)
+            return self.ask(None,'MV').addCallback(_mute2)
+        def _mute2(result):
+            """result is the volume before unmuting"""
+            self.mutedVolume = result
+            if self.mutedVolume < '25':
+                # denon was muted when halirc started
+                self.mutedVolume = None
+                newMV = '40'
+            else:
+                newMV = '20'
+            return self.push('MV%s' % newMV)
+        return self.ask('PW').addCallback(_mute1)
