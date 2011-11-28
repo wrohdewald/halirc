@@ -118,5 +118,5 @@ class MyHal(Hal):
 
         MorningAction(self, vdr, denon, lgtv)
 
-
+# do not change this:
 main(MyHal)
