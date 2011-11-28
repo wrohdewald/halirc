@@ -30,12 +30,6 @@ Harmony: Denon Lautstaerke und Mute dito
 import os, daemon
 
 from twisted.internet import reactor
-# this code ensures that pylint gives no errors about
-# undefined attributes:
-reactor.callLater = reactor.callLater
-reactor.run = reactor.run
-reactor.connectUNIX = reactor.connectUNIX
-
 from twisted.internet.serialport import SerialPort
 
 from lib import OPTIONS, LOGGER, Hal, Filter, RemoteEvent, IrwFactory

@@ -26,6 +26,11 @@ from twisted.protocols.basic import LineOnlyReceiver
 from twisted.internet.protocol import ClientFactory
 from twisted.internet.defer import Deferred, succeed
 from twisted.internet import reactor
+# this code ensures that pylint gives no errors about
+# undefined attributes:
+reactor.callLater = reactor.callLater
+reactor.run = reactor.run
+reactor.connectUNIX = reactor.connectUNIX
 
 
 LOGGER = None
