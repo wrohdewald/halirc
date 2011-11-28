@@ -24,7 +24,7 @@ your own myhalirc.py and do there whatever you want.
 
 import os
 
-from lib import LOGGER, Hal, Filter, RemoteEvent, main
+from lib import LOGGER, Hal, main
 from lgtv import LGTV
 from denon import Denon
 from vdr import Vdr
@@ -77,6 +77,7 @@ class MorningAction(object):
 
 class MyHal(Hal):
     """an example for user definitions"""
+
     def setup(self):
         """
         my own setup.
@@ -90,30 +91,30 @@ class MyHal(Hal):
         denon = Denon(self)
         vdr = Vdr(self)
         lgtv = LGTV(self)
-        self.filters.append(Filter(RemoteEvent('AcerP1165', 'PgUp'), denon.mute))
-        self.filters.append(Filter(RemoteEvent('AcerP1165', 'PgDown'), denon.queryStatus))
-        self.filters.append(Filter(RemoteEvent('AcerP1165', '0'), denon.send, args='SIDBS/SAT'))
-        self.filters.append(Filter(RemoteEvent('AcerP1165', '1'), denon.send, args='SICD'))
-        self.filters.append(Filter(RemoteEvent('AcerP1165', '2'), denon.send, args='SITUNER'))
-        self.filters.append(Filter(RemoteEvent('AcerP1165', '3'), denon.send, args='SIDVD'))
-        self.filters.append(Filter(RemoteEvent('AcerP1165', '4'), denon.send, args='SIVDP'))
-        self.filters.append(Filter(RemoteEvent('AcerP1165', '5'), denon.send, args='SIVCR-1'))
-        self.filters.append(Filter(RemoteEvent('AcerP1165', '6'), denon.send, args='SIVCR-2'))
-        self.filters.append(Filter(RemoteEvent('AcerP1165', '7'), denon.send, args='SIV.AUX'))
-        self.filters.append(Filter(RemoteEvent('AcerP1165', '8'), denon.send, args='SICDR.TAPE'))
-        self.filters.append(Filter(RemoteEvent('AcerP1165', '9'), denon.send, args='SITV'))
-        self.filters.append(Filter(RemoteEvent('AcerP1165', 'Left'), denon.poweron))
-        self.filters.append(Filter(RemoteEvent('AcerP1165', 'Right'), denon.standby))
-        self.filters.append(Filter(RemoteEvent('AcerP1165', 'Down'), denon.volume, args='DOWN'))
-        self.filters.append(Filter(RemoteEvent('AcerP1165', 'Up'), denon.volume, args='UP'))
+        self.addRemoteFilter('AcerP1165', 'PgUp', denon.mute)
+        self.addRemoteFilter('AcerP1165', 'PgDown', denon.queryStatus)
+        self.addRemoteFilter('AcerP1165', '0', denon.send, args='SIDBS/SAT')
+        self.addRemoteFilter('AcerP1165', '1', denon.send, args='SICD')
+        self.addRemoteFilter('AcerP1165', '2', denon.send, args='SITUNER')
+        self.addRemoteFilter('AcerP1165', '3', denon.send, args='SIDVD')
+        self.addRemoteFilter('AcerP1165', '4', denon.send, args='SIVDP')
+        self.addRemoteFilter('AcerP1165', '5', denon.send, args='SIVCR-1')
+        self.addRemoteFilter('AcerP1165', '6', denon.send, args='SIVCR-2')
+        self.addRemoteFilter('AcerP1165', '7', denon.send, args='SIV.AUX')
+        self.addRemoteFilter('AcerP1165', '8', denon.send, args='SICDR.TAPE')
+        self.addRemoteFilter('AcerP1165', '9', denon.send, args='SITV')
+        self.addRemoteFilter('AcerP1165', 'Left', denon.poweron)
+        self.addRemoteFilter('AcerP1165', 'Right', denon.standby)
+        self.addRemoteFilter('AcerP1165', 'Down', denon.volume, args='DOWN')
+        self.addRemoteFilter('AcerP1165', 'Up', denon.volume, args='UP')
 
-        self.filters.append(Filter(RemoteEvent('Receiver12V', '0'), lgtv.standby))
-        self.filters.append(Filter(RemoteEvent('Receiver12V', '1'), lgtv.send, args='power:on'))
-        self.filters.append(Filter(RemoteEvent('Hauppauge6400'), lgtv.mutescreen, args='Power2'))
-        self.filters.append(Filter(RemoteEvent('Receiver12V', '2'), lgtv.send, args='input:HDMI1'))
-        self.filters.append(Filter(RemoteEvent('Receiver12V', '3'), lgtv.send, args='input:HDMI2'))
-        self.filters.append(Filter(RemoteEvent('Receiver12V', '4'), lgtv.send, args='input:component'))
-        self.filters.append(Filter(RemoteEvent('Receiver12V', '5'), lgtv.send, args='input:DTV'))
+        self.addRemoteFilter('Receiver12V', '0', lgtv.standby)
+        self.addRemoteFilter('Receiver12V', '1', lgtv.send, args='power:on')
+        self.addRemoteFilter('Hauppauge6400', None, lgtv.mutescreen, args='Power2')
+        self.addRemoteFilter('Receiver12V', '2', lgtv.send, args='input:HDMI1')
+        self.addRemoteFilter('Receiver12V', '3', lgtv.send, args='input:HDMI2')
+        self.addRemoteFilter('Receiver12V', '4', lgtv.send, args='input:component')
+        self.addRemoteFilter('Receiver12V', '5', lgtv.send, args='input:DTV')
 
         MorningAction(self, vdr, denon, lgtv)
 

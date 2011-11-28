@@ -317,6 +317,10 @@ class Hal(object):
                 if fltr.stopIfMatch:
                     break
 
+    def addRemoteFilter(self, remote, button, action, args=None):
+        """a little helper for a common use case"""
+        self.filters.append(Filter(RemoteEvent(remote, button), action, args=args))
+
     # pylint: disable=R0913
     def addTimer(self, action, args=None, name=None, minute=None, hour=None,
            day=None, month=None, weekday=None):
