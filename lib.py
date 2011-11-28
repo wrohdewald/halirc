@@ -32,6 +32,13 @@ reactor.callLater = reactor.callLater
 reactor.run = reactor.run
 reactor.connectUNIX = reactor.connectUNIX
 
+# this ugly code ensures that pylint gives no errors about
+# undefined attributes:
+reactor.callLater = reactor.callLater
+reactor.run = reactor.run
+reactor.connectUNIX = reactor.connectUNIX
+
+
 
 LOGGER = None
 OPTIONS = None
