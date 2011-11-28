@@ -327,7 +327,7 @@ class Request(Deferred):
         """data without line eol. timeout -1 means we do not expect an answer."""
         self.protocol = protocol
         self.sendTime = None
-        assert message
+        assert isinstance(message, Message), message
         self.message = message
         self.timeout = timeout
         Deferred.__init__(self)
@@ -403,6 +403,7 @@ class TaskQueue:
 
     def push(self, request):
         """put a task into the queue and try to run it"""
+        assert isinstance(request, Request), request
         request.previous = self.allRequests[-1] if self.allRequests else None
         self.queued.append(request)
         self.allRequests = self.allRequests[-20:]
@@ -444,6 +445,7 @@ class Serializer(object):
 
     def push(self, cmd):
         """unconditionally send cmd"""
+        assert isinstance(cmd, Message), cmd
         return self.tasks.push(Request(self, cmd))
 
     def name(self):

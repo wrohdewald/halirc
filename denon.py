@@ -146,7 +146,7 @@ class DenonProtocol(LineOnlyReceiver, Serializer):
             if result.humanValue() != 'ON':
                 return succeed(None)
             if self.mutedVolume:
-                return self.mute(result)
+                return self.mute()
             else:
                 return self.send('MV%s' % newValue)
         return self.ask(None, 'PW').addCallback(_volume1, newValue)
@@ -160,16 +160,16 @@ class DenonProtocol(LineOnlyReceiver, Serializer):
             if self.mutedVolume:
                 newMV = self.mutedVolume
                 self.mutedVolume = None
-                return self.push('MV%s' % newMV)
+                return self.send('MV%s' % newMV)
             return self.ask('MV').addCallback(_mute2)
         def _mute2(result):
             """result is the volume before unmuting"""
-            self.mutedVolume = result
+            self.mutedVolume = result.humanValue()
             if self.mutedVolume < '25':
                 # denon was muted when halirc started
                 self.mutedVolume = None
                 newMV = '40'
             else:
                 newMV = '20'
-            return self.push('MV%s' % newMV)
+            return self.send('MV%s' % newMV)
         return self.ask('PW').addCallback(_mute1)
