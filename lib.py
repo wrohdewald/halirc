@@ -300,7 +300,7 @@ class Hal(object):
         self.irwSocket = '/var/run/lirc/lircd'
         self.setup()
         reactor.connectUNIX(self.irwSocket, IrwFactory(self))
-        reactor.callLater(self.__timerInterval, self.__checkTimers)
+        reactor.callLater(0, self.__checkTimers)
         reactor.run()
 
     def setup(self):
