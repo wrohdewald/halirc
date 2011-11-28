@@ -143,7 +143,7 @@ class DenonProtocol(LineOnlyReceiver, Serializer):
         """change volume up or down or to a discrete value"""
         def _volume1(result, newValue):
             """result is ON or STANDBY"""
-            if result != 'ON':
+            if result.humanValue() != 'ON':
                 return succeed(None)
             if self.mutedVolume:
                 return self.mute(result)
@@ -155,13 +155,13 @@ class DenonProtocol(LineOnlyReceiver, Serializer):
         """toggle between mute/unmuted"""
         def _mute1(result):
             """result is ON or STANDBY"""
-            if result != 'ON':
+            if result.humanValue() != 'ON':
                 return
             if self.mutedVolume:
                 newMV = self.mutedVolume
                 self.mutedVolume = None
                 return self.push('MV%s' % newMV)
-            return self.ask(None,'MV').addCallback(_mute2)
+            return self.ask('MV').addCallback(_mute2)
         def _mute2(result):
             """result is the volume before unmuting"""
             self.mutedVolume = result
