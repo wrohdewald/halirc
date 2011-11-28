@@ -190,13 +190,13 @@ class LGTVProtocol(LineOnlyReceiver, Serializer):
         else:
             def got1(answer):
                 """got answer"""
-                if answer != '01':
+                if answer.humanValue() != 'on':
                     return self.init()
                 else:
                     return self.getAnswer('mutescreen').addCallback(got2)
             def got2(answer):
                 """got answer"""
-                if answer != '00':
+                if answer.humanValue() != 'off':
                     return self.init()
                 else:
                     return succeed(None)
