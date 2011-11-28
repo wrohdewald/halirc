@@ -78,6 +78,12 @@ class MorningAction(object):
 class MyHal(Hal):
     """an example for user definitions"""
 
+    def allOff(self, event, denon, lgtv):
+        """as the name says. Will be called if the Denon is powered
+        off - the LG does not make sense without Denon"""
+        denon.standby()
+        lgtv.standby()
+
     def setup(self):
         """
         my own setup.
@@ -104,7 +110,7 @@ class MyHal(Hal):
         self.addRemoteFilter('AcerP1165', '8', denon.send, args='SICDR.TAPE')
         self.addRemoteFilter('AcerP1165', '9', denon.send, args='SITV')
         self.addRemoteFilter('AcerP1165', 'Left', denon.poweron)
-        self.addRemoteFilter('AcerP1165', 'Right', denon.standby)
+        self.addRemoteFilter('AcerP1165', 'Right', self.allOff, args=[denon, lgtv])
         self.addRemoteFilter('AcerP1165', 'Down', denon.volume, args='DOWN')
         self.addRemoteFilter('AcerP1165', 'Up', denon.volume, args='UP')
 
