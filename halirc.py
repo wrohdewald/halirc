@@ -38,12 +38,11 @@ reactor.connectUNIX = reactor.connectUNIX
 
 from twisted.internet.serialport import SerialPort
 
-from lib import OPTIONS, LOGGER, Timer, Hal, Filter, RemoteEvent, IrwFactory
+from lib import OPTIONS, LOGGER, Hal, Filter, RemoteEvent, IrwFactory
 from lgtv import LGTVProtocol
 from denon import DenonProtocol
 from vdr import Vdr
 
-Timer.interval = 20
 
 class MorningAction(object):
     """very custom..."""
@@ -137,7 +136,6 @@ def main():
     SerialPort(denon, '/dev/denon', reactor)
     SerialPort(lgtv, '/dev/LGPlasma', reactor)
     reactor.connectUNIX('/var/run/lirc/lircd', IrwFactory(hal))
-    reactor.callLater(Timer.interval, hal.checkTimers)
     reactor.run()
 
 if __name__ == "__main__":

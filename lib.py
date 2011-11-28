@@ -289,6 +289,8 @@ class Hal(object):
         self.filters = []
         self.events = []
         self.timers = []
+        self.__timerInterval = 20
+        reactor.callLater(self.__timerInterval, self.__checkTimers)
 
     def eventReceived(self, event):
         """central entry point for all events"""
@@ -308,11 +310,11 @@ class Hal(object):
         when is a python datetime object"""
         self.timers.append(Timer(action, name, args, minute, hour, day, month, weekday))
 
-    def checkTimers(self):
+    def __checkTimers(self):
         """check and execute timers"""
         for timer in self.timers:
             timer.trigger()
-        reactor.callLater(Timer.interval, self.checkTimers)
+        reactor.callLater(self.__timerInterval, self.__checkTimers)
 
 class Request(Deferred):
     """we request the device to do something"""
