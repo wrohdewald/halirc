@@ -50,7 +50,7 @@ class DenonMessage(Message):
         else:
             return self._encoded[2:] if self._encoded else ''
 
-class DenonProtocol(LineOnlyReceiver, Serializer):
+class Denon(LineOnlyReceiver, Serializer):
     """talk to a Denon AVR 2805 or similar"""
     delimiter = '\r'
     message = DenonMessage

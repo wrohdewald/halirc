@@ -118,7 +118,7 @@ class LGTVMessage(Message):
         """the value of this message, encoded"""
         return self._encoded.split()[2]
 
-class LGTVProtocol(LineOnlyReceiver, Serializer):
+class LGTV(LineOnlyReceiver, Serializer):
     """Interface to probably most LG flatscreens"""
     delimiter = 'x' # for LineOnlyReceiver
     message = LGTVMessage

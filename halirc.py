@@ -33,8 +33,8 @@ from twisted.internet import reactor
 from twisted.internet.serialport import SerialPort
 
 from lib import OPTIONS, LOGGER, Hal, Filter, RemoteEvent, IrwFactory
-from lgtv import LGTVProtocol
-from denon import DenonProtocol
+from lgtv import LGTV
+from denon import Denon
 from vdr import Vdr
 
 
@@ -131,9 +131,9 @@ def main():
     """do not pollute global namespace"""
     OPTIONS.debug = 'asricf'
     hal = MyHal()
-    denon = DenonProtocol(hal)
+    denon = Denon(hal)
     vdr = Vdr(hal)
-    lgtv = LGTVProtocol(hal)
+    lgtv = LGTV(hal)
     hal.setup(denon, vdr, lgtv)
     SerialPort(denon, '/dev/denon', reactor)
     SerialPort(lgtv, '/dev/LGPlasma', reactor)
