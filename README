@@ -1,5 +1,24 @@
+Installation
+============
+
+those packages must be installed:
+
+python-daemon
+python-lock
+python-twisted-conch
+
+
+Usage
+=====
+
 Everything in halirc.py is just an example. You want to start
 your own myhalirc.py and do there whatever you want.
+If you want to add support for new sources of events
+or for new devices to be controlled, you most certainly
+want to take a crash course in python-twisted first.
+Learn about the class Deferred. Never use time.sleep() in
+your code, everything is event driven.
+http://en.wikipedia.org/wiki/Twisted_%28software%29
 
 Author: Wolfgang Rohdewald <wolfgang@rohdewald.de>
 
