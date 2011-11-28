@@ -21,7 +21,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 from lib import Message, MessageEvent, Serializer
 from twisted.protocols.basic import LineOnlyReceiver
+from twisted.internet import reactor
 from twisted.internet.defer import succeed
+from twisted.internet.serialport import SerialPort
 
 
 class DenonMessage(Message):
@@ -55,13 +57,15 @@ class Denon(LineOnlyReceiver, Serializer):
     delimiter = '\r'
     message = DenonMessage
 
-    def __init__(self, hal):
+    def __init__(self, hal, device='/dev/denon'):
+        """default device is /dev/denon"""
         self.hal = hal
         self.mutedVolume = None
         # never close because the Denon sends events
         # by its own if it is operated by other means (IR, front knobs)
         self.delays = {'PW..': 1.5, '..PW': 0.02}
         Serializer.__init__(self)
+        self.__port = SerialPort(self, device, reactor)
 
     def delay(self, previous, this):
         """do we need to wait before sending this command?"""

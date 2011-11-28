@@ -24,6 +24,7 @@ import sys, datetime
 from twisted.protocols.basic import LineOnlyReceiver
 from twisted.internet.defer import succeed
 from twisted.internet import reactor
+from twisted.internet.serialport import SerialPort
 
 from lib import Message, MessageEvent, Serializer, \
     LOGGER, elapsedSince
@@ -123,11 +124,12 @@ class LGTV(LineOnlyReceiver, Serializer):
     delimiter = 'x' # for LineOnlyReceiver
     message = LGTVMessage
 
-    def __init__(self, hal):
+    def __init__(self, hal, device='/dev/LGPlasma'):
         Serializer.__init__(self)
         self.hal = hal
         self.videoMuted = None
         self.tvTimeout = 300
+        self.__port = SerialPort(self, device, reactor)
 
     def delay(self, previous, dummyThis):
         """compute delay between two requests. If we send commands

@@ -18,27 +18,20 @@ along with this program if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """
 
-import datetime
+import datetime, daemon
 import logging, logging.handlers
 from optparse import OptionParser
 
 from twisted.protocols.basic import LineOnlyReceiver
+from twisted.internet import reactor
 from twisted.internet.protocol import ClientFactory
 from twisted.internet.defer import Deferred, succeed
-from twisted.internet import reactor
-# this code ensures that pylint gives no errors about
-# undefined attributes:
-reactor.callLater = reactor.callLater
-reactor.run = reactor.run
-reactor.connectUNIX = reactor.connectUNIX
 
 # this ugly code ensures that pylint gives no errors about
 # undefined attributes:
 reactor.callLater = reactor.callLater
 reactor.run = reactor.run
 reactor.connectUNIX = reactor.connectUNIX
-
-
 
 LOGGER = None
 OPTIONS = None
@@ -298,11 +291,20 @@ class Filter(object):
 class Hal(object):
     """base class for central definitions, to be overridden by you!"""
     def __init__(self):
+        """the default lirc socket to listen on is /var/run/lirc/lircd.
+        Change that by setting self.irwSocket in setup()"""
         self.filters = []
         self.events = []
         self.timers = []
         self.__timerInterval = 20
+        self.irwSocket = '/var/run/lirc/lircd'
+        self.setup()
+        reactor.connectUNIX(self.irwSocket, IrwFactory(self))
         reactor.callLater(self.__timerInterval, self.__checkTimers)
+        reactor.run()
+
+    def setup(self):
+        """override this, not __init__"""
 
     def eventReceived(self, event):
         """central entry point for all events"""
@@ -471,5 +473,12 @@ class Serializer(object):
             msg = self.message(msg)
         return event, msg
 
-parseOptions()
-initLogger()
+def main(hal):
+    """it should not be necessary to ever adapt this"""
+    parseOptions()
+    initLogger()
+    if OPTIONS.background:
+        with daemon.DaemonContext():
+            hal()
+    else:
+        hal()

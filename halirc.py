@@ -18,25 +18,16 @@ You should have received a copy of the GNU General Public License
 along with this program if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
-
 Everything in halirc.py is just an example. You want to start
-your own mylirc.py and to there whatever you want.
-
-TODO
-Harmony: LG alles!!!!!! separate Codes vom Receiver12V anlernen
-Harmony: Denon Lautstaerke und Mute dito
+your own myhalirc.py and do there whatever you want.
 """
 
-import os, daemon
+import os
 
-from twisted.internet import reactor
-from twisted.internet.serialport import SerialPort
-
-from lib import OPTIONS, LOGGER, Hal, Filter, RemoteEvent, IrwFactory
+from lib import LOGGER, Hal, Filter, RemoteEvent, main
 from lgtv import LGTV
 from denon import Denon
 from vdr import Vdr
-
 
 class MorningAction(object):
     """very custom..."""
@@ -86,7 +77,7 @@ class MorningAction(object):
 
 class MyHal(Hal):
     """an example for user definitions"""
-    def setup(self, denon, vdr, lgtv):
+    def setup(self):
         """
         my own setup.
         since I do not want three receiving IRs, I send all commands to the
@@ -96,9 +87,9 @@ class MyHal(Hal):
         and from halirc. AcerP1165, Hauppauge6400 and Receiver12V are just some
         remote controls I do not need otherwise.
         """
-        # pylint: disable=W0201
-        # pylint - setup may define additional attributes
-        self.denon = denon
+        denon = Denon(self)
+        vdr = Vdr(self)
+        lgtv = LGTV(self)
         self.filters.append(Filter(RemoteEvent('AcerP1165', 'PgUp'), denon.mute))
         self.filters.append(Filter(RemoteEvent('AcerP1165', 'PgDown'), denon.queryStatus))
         self.filters.append(Filter(RemoteEvent('AcerP1165', '0'), denon.send, args='SIDBS/SAT'))
@@ -127,22 +118,4 @@ class MyHal(Hal):
         MorningAction(self, vdr, denon, lgtv)
 
 
-def main():
-    """do not pollute global namespace"""
-    OPTIONS.debug = 'asricf'
-    hal = MyHal()
-    denon = Denon(hal)
-    vdr = Vdr(hal)
-    lgtv = LGTV(hal)
-    hal.setup(denon, vdr, lgtv)
-    SerialPort(denon, '/dev/denon', reactor)
-    SerialPort(lgtv, '/dev/LGPlasma', reactor)
-    reactor.connectUNIX('/var/run/lirc/lircd', IrwFactory(hal))
-    reactor.run()
-
-if __name__ == "__main__":
-    if OPTIONS.background:
-        with daemon.DaemonContext():
-            main()
-    else:
-        main()
+main(MyHal)
