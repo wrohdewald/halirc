@@ -93,7 +93,15 @@ class MorningAction(object):
 class MyHal(Hal):
     """an example for user definitions"""
     def setup(self, denon, vdr, lgtv):
-        """my own setup"""
+        """
+        my own setup.
+        since I do not want three receiving IRs, I send all commands to the
+        IR receiver connected with lirc, and here we pass them on to the
+        correct device. I do not use the original remote codes because I do not
+        want the devices to get the same command simultaneously from the remote
+        and from halirc. AcerP1165, Hauppauge6400 and Receiver12V are just some
+        remote controls I do not need otherwise.
+        """
         # pylint: disable=W0201
         # pylint - setup may define additional attributes
         self.denon = denon
@@ -114,8 +122,6 @@ class MyHal(Hal):
         self.filters.append(Filter(RemoteEvent('AcerP1165', 'Down'), denon.volume, args='DOWN'))
         self.filters.append(Filter(RemoteEvent('AcerP1165', 'Up'), denon.volume, args='UP'))
 
-        MorningAction(self, vdr, denon, lgtv)
-
         self.filters.append(Filter(RemoteEvent('Receiver12V', '0'), lgtv.standby))
         self.filters.append(Filter(RemoteEvent('Receiver12V', '1'), lgtv.send, args='power:on'))
         self.filters.append(Filter(RemoteEvent('Hauppauge6400'), lgtv.mutescreen, args='Power2'))
@@ -123,6 +129,8 @@ class MyHal(Hal):
         self.filters.append(Filter(RemoteEvent('Receiver12V', '3'), lgtv.send, args='input:HDMI2'))
         self.filters.append(Filter(RemoteEvent('Receiver12V', '4'), lgtv.send, args='input:component'))
         self.filters.append(Filter(RemoteEvent('Receiver12V', '5'), lgtv.send, args='input:DTV'))
+
+        MorningAction(self, vdr, denon, lgtv)
 
 
 def main():
