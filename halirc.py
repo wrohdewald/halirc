@@ -40,10 +40,10 @@ from vdr import Vdr
 
 class MorningAction(object):
     """very custom..."""
-    def __init__(self, hal, myVdr, myDenon, myLG):
-        self.myVdr = myVdr
-        self.myDenon = myDenon
-        self.myLG = myLG
+    def __init__(self, hal, vdr, denon, lgtv):
+        self.vdr = vdr
+        self.denon = denon
+        self.lgtv = lgtv
         self.silencer = '/home/wr/ausschlafen'
         workdays = [0, 1, 2, 3, 4]
 
@@ -61,26 +61,26 @@ class MorningAction(object):
         """start channel NDR 90,3 loudly"""
         LOGGER.debug('morning.start')
         if self.wanted():
-            self.myDenon.poweron().addCallback(
-                self.myDenon.send, 'SIDBS/SAT').addCallback(
-                self.myDenon.send, 'MV60')
-            self.myVdr.gotoChannel(None, 'NDR 90,3')
-            self.myLG.standby()
+            self.denon.poweron().addCallback(
+                self.denon.send, 'SIDBS/SAT').addCallback(
+                self.denon.send, 'MV60')
+            self.vdr.gotoChannel(None, 'NDR 90,3')
+            self.lgtv.standby()
 
     def changeVolume(self):
         """kitchen time"""
         LOGGER.debug('morning.changeVolume')
         if self.wanted():
-            self.myDenon.send('MV42')
+            self.denon.send('MV42')
 
     def end(self):
         """off to train"""
         LOGGER.debug('morning.end')
         if self.wanted():
-            self.myDenon.standby(None)
-            if self.myVdr.prevChannel:
-                self.myVdr.gotoChannel(None, self.myVdr.prevChannel)
-            self.myLG.standby(None)
+            self.denon.standby(None)
+            if self.vdr.prevChannel:
+                self.vdr.gotoChannel(None, self.vdr.prevChannel)
+            self.lgtv.standby(None)
         elif os.path.exists(self.silencer):
             os.remove(self.silencer)
 
