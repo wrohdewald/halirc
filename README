@@ -7,6 +7,8 @@ python-daemon
 python-lock
 python-twisted-conch
 
+if you use vdr on an Xserver, you
+can install xosd and show OSD messages
 
 Usage
 =====

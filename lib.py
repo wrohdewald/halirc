@@ -25,6 +25,7 @@ from optparse import OptionParser
 from twisted.protocols.basic import LineOnlyReceiver
 from twisted.internet import reactor
 from twisted.internet.protocol import ClientFactory
+from twisted.internet.protocol import ProcessProtocol
 from twisted.internet.defer import Deferred, succeed
 
 # this ugly code ensures that pylint gives no errors about
@@ -32,6 +33,7 @@ from twisted.internet.defer import Deferred, succeed
 reactor.callLater = reactor.callLater
 reactor.run = reactor.run
 reactor.connectUNIX = reactor.connectUNIX
+reactor.spawnProcess = reactor.spawnProcess
 
 LOGGER = None
 OPTIONS = None
@@ -68,7 +70,7 @@ def parseOptions():
         help="""DEBUG:
 a sequence of characters: 's' shows data sent to appliances.
 'r' shows data read from appliances.
-'i' shows data received from remote controls.
+'e' shows events received
 'c' shows changes in the appliance status.
 'f' shows filtering info
              """, default='', metavar='DEBUG')
@@ -185,6 +187,12 @@ class MessageEvent(Event):
 
     def __str__(self):
         return 'event from %s: %s' % (self.sender, str(self.message))
+
+    def __eq__(self, other):
+        """only compare humanCommand, not the value"""
+        if type(self) != type(other):
+            return False
+        return self.message.humanCommand() == other.message.humanCommand()
 
 class Message(object):
     """holds content of a message from or to a device"""
@@ -308,7 +316,8 @@ class Hal(object):
 
     def eventReceived(self, event):
         """central entry point for all events"""
-        LOGGER.debug(str(event))
+        if 'e' in OPTIONS.debug:
+            LOGGER.debug(str(event))
         self.events.append(event)
         matchingFilters = list(x for x in self.filters if x.matches(self.events))
         for fltr in matchingFilters:
@@ -434,7 +443,8 @@ class TaskQueue:
 
     def gotAnswer(self, msg):
         """the device returned an answer"""
-        LOGGER.debug('gotAnswer for %s: %s' % (self.running, msg))
+        if 'r' in OPTIONS.debug:
+            LOGGER.debug('gotAnswer for %s: %s' % (self.running, msg))
         running = self.running
         self.running = None
         running.callback(msg)
@@ -477,12 +487,43 @@ class Serializer(object):
             msg = self.message(msg)
         return event, msg
 
+class OsdCat(object):
+    """lets us display OSD messages on the X server"""
+    def __init__(self):
+        self.__osdcat = None
+        self.__lastSent = None
+        self.closeTimeout = 5
+
+    def open(self):
+        """start process if not running"""
+        if not self.__osdcat:
+            self.__osdcat = ProcessProtocol()
+            reactor.spawnProcess(self.__osdcat, 'osd_cat', args=['osdcat',
+               '--align=center', '--outline=5', '--lines=1', '--delay=2', '--offset=10',
+               '--font=-adobe-courier-bold-r-normal--*-640-*-*-*-*' \
+               ], env={'DISPLAY': ':0'})
+        reactor.callLater(self.closeTimeout, self.close)
+
+    def close(self):
+        """close the process"""
+        if self.__osdcat:
+            if elapsedSince(self.__lastSent) > self.closeTimeout - 1:
+                self.__osdcat.transport.closeStdin()
+                self.__osdcat = None
+
+    def write(self, data):
+        """write to the osd_cat process"""
+        self.open()
+        self.__osdcat.transport.write(data + '\n')
+        self.__lastSent = datetime.datetime.now()
+
 def main(hal):
     """it should not be necessary to ever adapt this"""
-    parseOptions()
-    initLogger()
     if OPTIONS.background:
         with daemon.DaemonContext():
             hal()
     else:
         hal()
+
+parseOptions()
+initLogger()

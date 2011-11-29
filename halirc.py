@@ -24,9 +24,9 @@ your own myhalirc.py and do there whatever you want.
 
 import os
 
-from lib import LOGGER, Hal, main
+from lib import LOGGER, Hal, main, MessageEvent, Filter, OsdCat
 from lgtv import LGTV
-from denon import Denon
+from denon import Denon, DenonMessage
 from vdr import Vdr
 
 class MorningAction(object):
@@ -75,14 +75,22 @@ class MorningAction(object):
         elif os.path.exists(self.silencer):
             os.remove(self.silencer)
 
+def allOff(dummyEvent, denon, lgtv):
+    """as the name says. Will be called if the Denon is powered
+    off - the LG does not make sense without Denon"""
+    denon.standby()
+    lgtv.standby()
+
+def gotDenonEvent(event, osdcat):
+    """the Denon sent an event"""
+    value = event.message.humanValue()
+    if event.message.humanCommand() == 'MV':
+        if len(value) == 3:
+            value = value[:2] + '.5'
+    osdcat.write(value)
+
 class MyHal(Hal):
     """an example for user definitions"""
-
-    def allOff(self, event, denon, lgtv):
-        """as the name says. Will be called if the Denon is powered
-        off - the LG does not make sense without Denon"""
-        denon.standby()
-        lgtv.standby()
 
     def setup(self):
         """
@@ -95,8 +103,13 @@ class MyHal(Hal):
         remote controls I do not need otherwise.
         """
         denon = Denon(self)
+        denon.answersAsEvents = True
         vdr = Vdr(self)
         lgtv = LGTV(self)
+        osdcat = OsdCat()
+        for cmd in ('MV', 'SI', 'MS'):
+            self.filters.append(Filter(MessageEvent(
+                DenonMessage(cmd)), gotDenonEvent, args=osdcat))
         self.addRemoteFilter('AcerP1165', 'PgUp', denon.mute)
         self.addRemoteFilter('AcerP1165', 'PgDown', denon.queryStatus)
         self.addRemoteFilter('AcerP1165', '0', denon.send, args='SIDBS/SAT')
@@ -110,7 +123,7 @@ class MyHal(Hal):
         self.addRemoteFilter('AcerP1165', '8', denon.send, args='SICDR.TAPE')
         self.addRemoteFilter('AcerP1165', '9', denon.send, args='SITV')
         self.addRemoteFilter('AcerP1165', 'Left', denon.poweron)
-        self.addRemoteFilter('AcerP1165', 'Right', self.allOff, args=[denon, lgtv])
+        self.addRemoteFilter('AcerP1165', 'Right', allOff, args=[denon, lgtv])
         self.addRemoteFilter('AcerP1165', 'Down', denon.volume, args='DOWN')
         self.addRemoteFilter('AcerP1165', 'Up', denon.volume, args='UP')
 

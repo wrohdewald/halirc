@@ -61,6 +61,7 @@ class Denon(LineOnlyReceiver, Serializer):
         """default device is /dev/denon"""
         self.hal = hal
         self.mutedVolume = None
+        self.answersAsEvents = False
         # never close because the Denon sends events
         # by its own if it is operated by other means (IR, front knobs)
         self.delays = {'PW..': 1.5, '..PW': 0.02}
@@ -87,9 +88,10 @@ class Denon(LineOnlyReceiver, Serializer):
     def lineReceived(self, data):
         """we got a line from Denon"""
         msg = self.message(data)
-        if self.tasks.running and self.tasks.running.message.command() == msg.command():
+        isAnswer = self.tasks.running and self.tasks.running.message.command() == msg.command()
+        if isAnswer:
             self.tasks.gotAnswer(msg)
-        else:
+        if not isAnswer or self.answersAsEvents:
             # this has been triggered by other means like the
             # original remote control or the front elements of Denon
             self.hal.eventReceived(MessageEvent(msg))
