@@ -35,7 +35,7 @@ class DenonMessage(Message):
 
     def _setAttributes(self, decoded, encoded):
         self._decoded = self._encoded = decoded or encoded
-        if len(self.encoded) == 2:
+        if self.encoded and len(self.encoded) == 2:
             self.ask = True
             self._encoded += '?'
             self._decoded += '?'
