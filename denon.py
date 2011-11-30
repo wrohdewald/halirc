@@ -149,7 +149,7 @@ class Denon(LineOnlyReceiver, Serializer):
         """change volume up or down or to a discrete value"""
         def _volume1(result, newValue):
             """result is ON or STANDBY"""
-            if result.humanValue() != 'ON':
+            if result.value() != 'ON':
                 return succeed(None)
             if self.mutedVolume:
                 return self.mute()
@@ -161,7 +161,7 @@ class Denon(LineOnlyReceiver, Serializer):
         """toggle between mute/unmuted"""
         def _mute1(result):
             """result is ON or STANDBY"""
-            if result.humanValue() != 'ON':
+            if result.value() != 'ON':
                 return
             if self.mutedVolume:
                 newMV = self.mutedVolume
@@ -170,7 +170,7 @@ class Denon(LineOnlyReceiver, Serializer):
             return self.ask('MV').addCallback(_mute2)
         def _mute2(result):
             """result is the volume before unmuting"""
-            self.mutedVolume = result.humanValue()
+            self.mutedVolume = result.value()
             if self.mutedVolume < '25':
                 # denon was muted when halirc started
                 self.mutedVolume = None

@@ -230,17 +230,13 @@ class Message(object):
         """the human readable command"""
         return self.command()
 
-    def humanValue(self):
-        """the human readable value"""
-        return self.value()
-
     def __str__(self):
         """use the human readable form for logging"""
         result = self.humanCommand()
         if not result:
             return 'None'
-        if self.humanValue():
-            result += ':%s' % self.humanValue()
+        if self.value():
+            result += ':%s' % self.value()
         else:
             result += '?'
         return result

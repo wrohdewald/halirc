@@ -92,7 +92,7 @@ class LGTVMessage(Message):
         else: # decoded
             self._decoded = decoded
             humanCommand = self.humanCommand()
-            humanValue = self.humanValue()
+            humanValue = self.value()
             if humanValue:
                 encodedValue = [x[0] for x in self.values[humanCommand].items() if x[1] == humanValue][0]
             else:
@@ -108,16 +108,13 @@ class LGTVMessage(Message):
                 sys.exit(2)
         return result
 
-    def humanValue(self):
+    def value(self):
+        """the human readable value of this message"""
         return ':'.join(self._decoded.split(':')[1:])
 
     def command(self):
         """the command of this message, encoded"""
         return self._encoded.split()[0]
-
-    def value(self):
-        """the value of this message, encoded"""
-        return self._encoded.split()[2]
 
 class LGTV(LineOnlyReceiver, Serializer):
     """Interface to probably most LG flatscreens"""
@@ -192,13 +189,13 @@ class LGTV(LineOnlyReceiver, Serializer):
         else:
             def got1(answer):
                 """got answer"""
-                if answer.humanValue() != 'on':
+                if answer.value() != 'on':
                     return self.init()
                 else:
                     return self.getAnswer('mutescreen').addCallback(got2)
             def got2(answer):
                 """got answer"""
-                if answer.humanValue() != 'off':
+                if answer.value() != 'off':
                     return self.init()
                 else:
                     return succeed(None)

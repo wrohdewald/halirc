@@ -83,7 +83,7 @@ def allOff(dummyEvent, denon, lgtv):
 
 def gotDenonEvent(event, osdcat):
     """the Denon sent an event"""
-    value = event.message.humanValue()
+    value = event.message.value()
     if event.message.humanCommand() == 'MV':
         if len(value) == 3:
             value = value[:2] + '.5'
