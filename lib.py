@@ -134,10 +134,7 @@ class Timer(object):
                             return
             self.lastDone = now
             if self.args:
-                if isinstance(self.args, list):
-                    self.action(*self.args) # pylint: disable=W0142
-                else:
-                    self.action(self.args)
+                self.action(*self.args)
             else:
                 self.action()
 
@@ -200,9 +197,9 @@ class Message(object):
         assert (decoded is None) != (encoded is None), \
             'decoded:%s encoded:%s' % (decoded, encoded)
         if decoded is not None:
-            assert isinstance(decoded, basestring)
+            assert isinstance(decoded, basestring), repr(decoded)
         if encoded is not None:
-            assert isinstance(encoded, basestring)
+            assert isinstance(encoded, basestring), repr(encoded)
         self._encoded = None
         self._decoded = None
         self.ask = False
@@ -254,19 +251,21 @@ class Message(object):
 
 class Filter(object):
     """a filter always has a name. events is a single event or a list of events.
-       maxTime is of type timedelta, with default = len(events) seconds.
-       if stopIfMatch=True and this Filter matches, do not look at following filters"""
-    def __init__(self, events, action, name=None, args=None, maxTime=None, stopIfMatch=False):
-        self.name = name
+    Attributes:
+        maxTime        of type timedelta, with default = len(events) seconds.
+        stopIfMatch    if True and this Filter matches, do not look at following filters
+    """
+    def __init__(self, events, action, *args, **kwargs):
+        self.action = action
+        self.args = args
+        self.kwargs = kwargs
         if not isinstance(events, list):
             events = [events]
         self.events = events
-        self.maxTime = maxTime
+        self.maxTime = None
+        self.stopIfMatch = False
         if len(self.events) > 1 and not self.maxTime:
             self.maxTime = datetime.timedelta(seconds=len(self.events)-1)
-        self.action = action
-        self.args = args
-        self.stopIfMatch = stopIfMatch
 
     def matches(self, events):
         """does the filter match the end of the actual events?"""
@@ -282,18 +281,10 @@ class Filter(object):
         """execute this filter action"""
         if 'f' in OPTIONS.debug:
             LOGGER.debug('executing filter %s' % str(self))
-        if self.args:
-            if isinstance(self.args, list):
-                return self.action(event, *self.args) # pylint: disable=W0142
-            else:
-                return self.action(event, self.args)
-        else:
-            return self.action(event)
+        return self.action(event, *self.args, **self.kwargs)
 
     def __str__(self):
         """return name"""
-        if self.name:
-            return self.name
         return '[%s]' % ','.join(str(x) for x in self.events)
 
 class Hal(object):
@@ -326,9 +317,9 @@ class Hal(object):
                 if fltr.stopIfMatch:
                     break
 
-    def addRemoteFilter(self, remote, button, action, args=None):
+    def addRemoteFilter(self, remote, button, action, *args, **kwargs):
         """a little helper for a common use case"""
-        self.filters.append(Filter(RemoteEvent(remote, button), action, args=args))
+        self.filters.append(Filter(RemoteEvent(remote, button), action, *args, **kwargs))
 
     # pylint: disable=R0913
     def addTimer(self, action, args=None, name=None, minute=None, hour=None,
@@ -475,7 +466,7 @@ class Serializer(object):
         """for logging messages"""
         return self.__class__.__name__.replace('Protocol','')
 
-    def args2message(self, args):
+    def args2message(self, *args):
         """convert the last argument to a Message"""
         assert len(args) in (1, 2, 3), args
         if isinstance(args[0], Event):

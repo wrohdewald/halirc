@@ -160,7 +160,7 @@ class LGTV(LineOnlyReceiver, Serializer):
         when we get here, the LG TV should already return the
         wanted value if it received the LG remote event too
         """
-        _, msg = self.args2message(args)
+        _, msg = self.args2message(*args)
         def got(result):
             """now we know the current value"""
             if result.value() != msg.value():

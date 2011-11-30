@@ -150,7 +150,7 @@ class Vdr(Serializer):
 
     def send(self, *args):
         """unconditionally send cmd"""
-        _, msg = self.args2message(args)
+        _, msg = self.args2message(*args)
         return self.push(msg)
 
     def getChannel(self, dummyResult=None):

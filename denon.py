@@ -120,7 +120,7 @@ class Denon(LineOnlyReceiver, Serializer):
     def send(self, *args):
         """when applicable ask Denon for current value before sending
         new value"""
-        _, msg = self.args2message(args)
+        _, msg = self.args2message(*args)
         if msg.encoded in ['MVDOWN', 'MVUP']: # the current state is never UP or DOWN
             return self.push(msg)
         return self.ask(msg.humanCommand()).addCallback(self.__sendIfNot, msg)
