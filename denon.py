@@ -36,7 +36,7 @@ class DenonMessage(Message):
     def _setAttributes(self, decoded, encoded):
         self._decoded = self._encoded = decoded or encoded
         if self.encoded and len(self.encoded) == 2:
-            self.ask = True
+            self.isQuestion = True
             self._encoded += '?'
             self._decoded += '?'
 
@@ -47,7 +47,7 @@ class DenonMessage(Message):
 
     def value(self):
         """the human readable value"""
-        if self.ask:
+        if self.isQuestion:
             return ''
         else:
             return self._encoded[2:] if self._encoded else ''
@@ -70,8 +70,8 @@ class Denon(LineOnlyReceiver, Serializer):
         """do we need to wait before sending this command?"""
         cmd1 = previous.message.humanCommand() if previous else ''
         cmd2 = this.message.humanCommand()
-        question1 = previous.message.ask
-        question2 = this.message.ask
+        question1 = previous.message.isQuestion
+        question2 = this.message.isQuestion
         result = 0
         if cmd1:
             if cmd1 == cmd2 and not question1 and question2:

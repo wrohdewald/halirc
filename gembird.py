@@ -91,7 +91,7 @@ class GembirdMessage(Message):
                     self._encoded = '-f %s' % self.outlet
             else:
                 self._encoded = '-g %s' % self.outlet
-                self.ask = True
+                self.isQuestion = True
 
     def humanCommand(self):
         if self.outlet is None:
@@ -126,7 +126,7 @@ class Gembird(Serializer):
 
     def delay(self, previous, dummyThis):
         """compute necessary delay before we can execute request"""
-        if not previous.message.ask:
+        if not previous.message.isQuestion:
             # the gembird needs this time for switching, otherwise it returns an error
             return 0.7
         return 0

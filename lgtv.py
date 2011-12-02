@@ -95,7 +95,7 @@ class LGTVMessage(Message):
             if humanValue:
                 encodedValue = [x[0] for x in self.values[humanCommand].items() if x[1] == humanValue][0]
             else:
-                self.ask = True
+                self.isQuestion = True
                 encodedValue = 'ff'
         self._encoded = ' '.join([self.commands[humanCommand], self.setID, encodedValue])
 

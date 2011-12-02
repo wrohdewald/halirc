@@ -202,7 +202,7 @@ class Message(object):
             assert isinstance(encoded, basestring), repr(encoded)
         self._encoded = None
         self._decoded = None
-        self.ask = False
+        self.isQuestion = False
         self._setAttributes(decoded, encoded)
         self.status = 'OK' # the status returned from device: 'OK' or an error string
 
