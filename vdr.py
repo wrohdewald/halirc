@@ -78,9 +78,6 @@ class VdrProtocol(LineOnlyReceiver, Telnet, Serializer):
         if line.startswith('220 '):
             self.wrapper.openDeferred.callback(None)
             return
-        if not self.wrapper.protocol:
-            LOGGER.error('VDR server is not ready:%s' % line)
-            self.transport.loseConnection()
         if line.split(' ')[0] not in ['250', '354', '550']:
             LOGGER.error('from %s: %s' % (self.wrapper.name(), line))
         else:
@@ -109,7 +106,6 @@ class Vdr(Serializer):
         self.host = host
         self.port = port
         self.protocol = None
-        self.transport = None
         self.openDeferred = None
         self.prevChannel = None
         self.closeTimeout = 5
@@ -120,7 +116,6 @@ class Vdr(Serializer):
             """now we have a a connection, save it"""
             self.protocol = result
             self.protocol.wrapper = self
-            self.transport = result.transport
         if not self.protocol:
             LOGGER.debug('opening vdr')
             point = TCP4ClientEndpoint(reactor, self.host, self.port)
@@ -140,9 +135,12 @@ class Vdr(Serializer):
             if not (self.tasks.running or self.tasks.queued):
                 if elapsedSince(self.tasks.allRequests[-1].sendTime) > self.closeTimeout - 1:
                     LOGGER.debug('closing vdr')
-                    self.protocol.transport.write('quit\n')
+                    self.write('quit\n')
                     self.protocol.transport.loseConnection()
                     self.protocol = None
+
+    def write(self, data):
+        self.protocol.transport.write(data)
 
     def lineReceived(self, line):
         """proxy"""

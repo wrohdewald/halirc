@@ -377,10 +377,9 @@ class Request(Deferred):
         def _send(dummyResult):
             """now the transport is open"""
             self.sendTime = datetime.datetime.now()
-            assert self.protocol.transport, 'transport not set in %s' % self.protocol
             reactor.callLater(self.timeout, self.timedout)
             data = self.message.encoded + self.protocol.eol
-            return self.protocol.transport.write(data)
+            return self.protocol.write(data)
         return self.protocol.open().addCallback(self.__delaySending).addCallback(_send)
 
     def timedout(self):
@@ -452,6 +451,12 @@ class Serializer(object):
     def delay(self, dummyPrevious, dummyThis): # pylint: disable=R0201
         """compute necessary delay before we can execute request"""
         return 0
+
+    def write(self, data):
+        """default is writing to transport"""
+        self.transport.write(data) # pylint: disable=E1101
+        # pylint Serializer by default is a mixin to a Protocol
+        # which defines transport
 
     def push(self, cmd):
         """unconditionally send cmd"""
