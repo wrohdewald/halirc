@@ -22,7 +22,6 @@ import os
 
 from twisted.internet import reactor
 from twisted.internet.protocol import ProcessProtocol
-from twisted.internet.defer import succeed
 
 from lib import LOGGER, OPTIONS, Message, Serializer
 
@@ -134,31 +133,11 @@ class Gembird(Serializer):
 
     def poweron(self, dummyEvent, which):
         """toggle power on&off. which is 1 2 3 4 all"""
-        return self.__send('outlet%d:on' % which)
+        return self.send('outlet%d:on' % which)
 
     def poweroff(self, dummyEvent, which):
         """toggle power on&off. which is 1 2 3 4 all"""
-        return self.__send('outlet%d:off' % which)
-
-    def __send(self, *args):
-        """if wanted value for cmd is not set in LGTV, set it.
-        If we are acting on an event from the LG remote:
-        the LG TV is quite fast in executing those events, so
-        when we get here, the LG TV should already return the
-        wanted value if it received the LG remote event too
-        """
-        _, msg = self.args2message(*args)
-        def got(result):
-            """now we know the current value"""
-            if result.value() != msg.value():
-                return self.push(msg)
-            else:
-                return succeed(None)
-        return self.getAnswer(msg.humanCommand()).addCallback(got)
-
-    def getAnswer(self, cmd):
-        """ask the Gembird for a value"""
-        return self.push(self.message(cmd))
+        return self.send('outlet%d:off' % which)
 
     def lineReceived(self, data):
         """nothing special here"""

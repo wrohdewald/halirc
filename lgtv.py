@@ -148,26 +148,6 @@ class LGTV(LineOnlyReceiver, Serializer):
            self.send, 'aspect:scan').addCallback(
            self.send, 'mutescreen:off')
 
-    def send(self, *args):
-        """if wanted value for cmd is not set in LGTV, set it.
-        If we are acting on an event from the LG remote:
-        the LG TV is quite fast in executing those events, so
-        when we get here, the LG TV should already return the
-        wanted value if it received the LG remote event too
-        """
-        _, msg = self.args2message(*args)
-        def got(result):
-            """now we know the current value"""
-            if result.value() != msg.value():
-                return self.push(msg)
-            else:
-                return succeed(None)
-        return self.getAnswer(msg.humanCommand()).addCallback(got)
-
-    def getAnswer(self, cmd):
-        """ask the LGTV for a value"""
-        return self.push(self.message(cmd))
-
     def standby(self, *dummyArgs):
         """power off the LGTV"""
         self.send('power:off')

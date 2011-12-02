@@ -374,13 +374,13 @@ class Request(Deferred):
 
     def send(self):
         """send request to device"""
-        def _send(dummyResult):
+        def send1(dummyResult):
             """now the transport is open"""
             self.sendTime = datetime.datetime.now()
             reactor.callLater(self.timeout, self.timedout)
             data = self.message.encoded + self.protocol.eol
             return self.protocol.write(data)
-        return self.protocol.open().addCallback(self.__delaySending).addCallback(_send)
+        return self.protocol.open().addCallback(self.__delaySending).addCallback(send1)
 
     def timedout(self):
         """do callback(None) and log warning"""
@@ -507,6 +507,23 @@ class Serializer(object):
         if not isinstance(msg, Message):
             msg = self.message(msg)
         return event, msg
+
+    def getAnswer(self, cmd):
+        """ask the device for a value"""
+        return self.push(self.message(cmd))
+
+    def send(self, *args):
+        """check the current device value and send the wanted
+        new value.
+        """
+        _, msg = self.args2message(*args)
+        def got(result):
+            """now we know the current value"""
+            if result.value() != msg.value():
+                return self.push(msg)
+            else:
+                return succeed(None)
+        return self.getAnswer(msg.humanCommand()).addCallback(got)
 
 class OsdCat(object):
     """lets us display OSD messages on the X server"""
