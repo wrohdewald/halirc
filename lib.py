@@ -477,6 +477,16 @@ class Serializer(object):
         # pylint Serializer by default is a mixin to a Protocol
         # which defines transport
 
+    def defaultInputHandler(self, data):
+        """we got a line from a device"""
+        msg = self.message(encoded=data)
+        isAnswer = self.tasks.running and \
+            self.tasks.running.message.humanCommand() == msg.humanCommand()
+        if isAnswer:
+            self.tasks.gotAnswer(msg)
+        if not isAnswer or self.answersAsEvents:
+            self.hal.eventReceived(MessageEvent(msg))
+
     def push(self, cmd):
         """unconditionally send cmd"""
         assert isinstance(cmd, Message), cmd

@@ -26,8 +26,7 @@ from twisted.internet.defer import succeed
 from twisted.internet import reactor
 from twisted.internet.serialport import SerialPort
 
-from lib import Message, MessageEvent, Serializer, \
-    LOGGER, elapsedSince
+from lib import Message, Serializer, LOGGER, elapsedSince
 
 class LGTVMessage(Message):
     """holds content of a message from or to a LG TV"""
@@ -201,12 +200,5 @@ class LGTV(LineOnlyReceiver, Serializer):
             return self.getAnswer('power').addCallback(got1)
 
     def lineReceived(self, data):
-        """we got a line from LGTV"""
-        msg = self.message(encoded=data)
-        if self.tasks.running:
-            self.tasks.gotAnswer(msg)
-        else:
-            # this has been triggered by other means like the
-            # original remote control or the front elements of Denon
-            self.hal.eventReceived(MessageEvent(msg))
+        Serializer.defaultInputHandler(self, data)
 

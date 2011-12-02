@@ -19,7 +19,7 @@ along with this program if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """
 
-from lib import Message, MessageEvent, Serializer
+from lib import Message, Serializer
 from twisted.protocols.basic import LineOnlyReceiver
 from twisted.internet import reactor
 from twisted.internet.defer import succeed
@@ -84,15 +84,7 @@ class Denon(LineOnlyReceiver, Serializer):
         return result
 
     def lineReceived(self, data):
-        """we got a line from Denon"""
-        msg = self.message(data)
-        isAnswer = self.tasks.running and self.tasks.running.message.command() == msg.command()
-        if isAnswer:
-            self.tasks.gotAnswer(msg)
-        if not isAnswer or self.answersAsEvents:
-            # this has been triggered by other means like the
-            # original remote control or the front elements of Denon
-            self.hal.eventReceived(MessageEvent(msg))
+        Serializer.defaultInputHandler(self, data)
 
     def ask(self, *args):
         """always ask Denon, caching only means trouble"""
