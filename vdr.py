@@ -100,8 +100,7 @@ class Vdr(Serializer):
     message = VdrMessage
 
     def __init__(self, hal, host='localhost', port=6419):
-        Serializer.__init__(self)
-        self.hal = hal
+        Serializer.__init__(self, hal)
         self.host = host
         self.port = port
         self.protocol = None

@@ -458,7 +458,8 @@ class Serializer(object):
     eol = '\r'
     message = Message
 
-    def __init__(self):
+    def __init__(self, hal):
+        self.hal = hal
         self.tasks = TaskQueue()
         self.answersAsEvents = False
 
