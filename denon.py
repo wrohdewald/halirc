@@ -61,7 +61,6 @@ class Denon(LineOnlyReceiver, Serializer):
         """default device is /dev/denon"""
         self.hal = hal
         self.mutedVolume = None
-        self.answersAsEvents = False
         # never close because the Denon sends events
         # by its own if it is operated by other means (IR, front knobs)
         self.delays = {'PW..': 1.5, '..PW': 0.02}

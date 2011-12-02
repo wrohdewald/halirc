@@ -437,12 +437,30 @@ class TaskQueue:
         self.run()
 
 class Serializer(object):
-    """a mixin class"""
+    """
+       a mixin class, presenting a unified interface
+       to the devices.
+
+       Attributes:
+
+       answersAsEvents: Some devices can send status changes as events,
+                        even if the status has been changed by other means
+                        like the original remote control or the front elements.
+                        Of the currently implemented devices, only the Denon
+                        can do that. Those events are passed to the global
+                        event handler. If this flag is set, all answers are
+                        processed as usual and - in addition - passed to the
+                        global event handler. Example usage: If Denon changes
+                        volume, the global event handler will display the new
+                        volume on the TV. With this flag set, that also 
+                        happens for volume changes done by halirc.
+    """
     eol = '\r'
     message = Message
 
     def __init__(self):
         self.tasks = TaskQueue()
+        self.answersAsEvents = False
 
     def open(self): # pylint: disable=R0201
         """the device is always open"""
