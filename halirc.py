@@ -25,6 +25,7 @@ your own myhalirc.py and do there whatever you want.
 import os
 
 from lib import LOGGER, Hal, main, MessageEvent, Filter, OsdCat
+from gembird import Gembird
 from lgtv import LGTV
 from denon import Denon, DenonMessage
 from vdr import Vdr
@@ -107,6 +108,7 @@ class MyHal(Hal):
         vdr = Vdr(self)
         lgtv = LGTV(self)
         osdcat = OsdCat()
+        gembird = Gembird(self)
         for cmd in ('MV', 'SI', 'MS'):
             self.filters.append(Filter(MessageEvent(
                 DenonMessage(cmd)), gotDenonEvent, osdcat))

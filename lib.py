@@ -18,7 +18,7 @@ along with this program if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """
 
-import datetime, daemon, os
+import datetime, daemon
 import logging, logging.handlers
 from optparse import OptionParser
 
@@ -452,7 +452,7 @@ class Serializer(object):
                         processed as usual and - in addition - passed to the
                         global event handler. Example usage: If Denon changes
                         volume, the global event handler will display the new
-                        volume on the TV. With this flag set, that also 
+                        volume on the TV. With this flag set, that also
                         happens for volume changes done by halirc.
     """
     eol = '\r'
@@ -537,48 +537,6 @@ class OsdCat(object):
         self.open()
         self.__osdcat.transport.write(data + '\n')
         self.__lastSent = datetime.datetime.now()
-
-class GembirdProtocol(ProcessProtocol):
-    # pylint: disable=W0232
-    # pylint - we do not need __init__
-    """we want to log gembird error messages"""
-
-    def errReceived(self, data):
-        """got stderr from sispmctl"""
-        for line in data.split('\n'):
-            if not line:
-                # we do not want to log the copyright...
-                # what sense does it make to add that
-                # to an error message?
-                break
-            LOGGER.error('Gembird: %s' % line)
-
-class Gembird(object):
-    """use the external program sispmctl for controlling
-    the Gembird USB power outlet"""
-    def __init__(self, device='/dev/steckerleiste'):
-        self.device = device
-
-
-    def poweron(self, dummyEvent, which):
-        """toggle power on&off. which is 1 2 3 4 all"""
-        self.__send('-o', which)
-
-    def poweroff(self, dummyEvent, which):
-        """toggle power on&off. which is 1 2 3 4 all"""
-        self.__send('-f', which)
-
-    def toggle(self, dummyEvent, which):
-        """toggle power on&off. which is 1 2 3 4 all"""
-        self.__send('-t', which)
-
-    def __send(self, *args):
-        """write to the osd_cat process"""
-        if 's' in OPTIONS.debug:
-            LOGGER.debug('sending to Gembird: %s' % ' '.join(args))
-        sisargs = ['sispmctl', '-d', self.device]
-        sisargs.extend(args)
-        reactor.spawnProcess(GembirdProtocol(), 'sispmctl', args=sisargs, env={'PATH': os.environ['PATH']})
 
 def main(hal):
     """it should not be necessary to ever adapt this"""
