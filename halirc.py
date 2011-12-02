@@ -132,7 +132,7 @@ class MyHal(Hal):
         self.addRemoteFilter('Hauppauge6400', None, lgtv.mutescreen, 'Power2')
         self.addRemoteFilter('Receiver12V', '2', lgtv.send, 'input:HDMI1')
         self.addRemoteFilter('Receiver12V', '3', lgtv.send, 'input:HDMI2')
-        self.addRemoteFilter('Receiver12V', '4', lgtv.send, 'input:component')
+        self.addRemoteFilter('Receiver12V', '4', lgtv.send, 'input:Component')
         self.addRemoteFilter('Receiver12V', '5', lgtv.send, 'input:DTV')
 
         MorningAction(self, vdr, denon, lgtv)
