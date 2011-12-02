@@ -49,7 +49,7 @@ class VdrMessage(Message):
         # TODO: subcommands
         return self._encoded[4:] if self._encoded else ''
 
-class VdrProtocol(LineOnlyReceiver, Telnet, Serializer):
+class VdrProtocol(LineOnlyReceiver, Telnet):
     """talk to vdr"""
     # pylint: disable=R0904
     # pylint finds too many public methods
@@ -58,7 +58,6 @@ class VdrProtocol(LineOnlyReceiver, Telnet, Serializer):
     def __init__(self):
         self.wrapper = None
         Telnet.__init__(self)
-        Serializer.__init__(self)
 
     def disableRemote(self, option):
         """disable a remote option"""
