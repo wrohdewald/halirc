@@ -170,14 +170,14 @@ class LGTV(LineOnlyReceiver, Serializer):
                 if answer.value() != 'on':
                     return self.init()
                 else:
-                    return self.getAnswer('mutescreen').addCallback(got2)
+                    return self.ask('mutescreen').addCallback(got2)
             def got2(answer):
                 """got answer"""
                 if answer.value() != 'off':
                     return self.init()
                 else:
                     return succeed(None)
-            return self.getAnswer('power').addCallback(got1)
+            return self.ask('power').addCallback(got1)
 
     def lineReceived(self, data):
         Serializer.defaultInputHandler(self, data)

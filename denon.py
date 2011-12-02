@@ -86,11 +86,6 @@ class Denon(LineOnlyReceiver, Serializer):
     def lineReceived(self, data):
         Serializer.defaultInputHandler(self, data)
 
-    def ask(self, *args):
-        """always ask Denon, caching only means trouble"""
-        assert len(args[-1]) == 2, args
-        return self.push(self.message(args[-1][:2]))
-
     def standby(self, *dummyArgs):
         """switch off"""
         self.mutedVolume = None
@@ -100,20 +95,14 @@ class Denon(LineOnlyReceiver, Serializer):
         """switch on"""
         return self.send('PWON')
 
-    def __sendIfNot(self, result, msg):
-        """result is the current value. If cmd differs, send it"""
-        if result.value() == msg.value():
-            return succeed(None)
-        else:
-            return self.push(msg)
-
     def send(self, *args):
         """when applicable ask Denon for current value before sending
         new value"""
         _, msg = self.args2message(*args)
         if msg.encoded in ['MVDOWN', 'MVUP']: # the current state is never UP or DOWN
             return self.push(msg)
-        return self.ask(msg.humanCommand()).addCallback(self.__sendIfNot, msg)
+        else:
+            return Serializer.send(self, *args)
 
     def queryStatus(self, dummyResult, full=False):
         """query Denon status. If full, try to query even those
@@ -145,7 +134,7 @@ class Denon(LineOnlyReceiver, Serializer):
                 return self.mute()
             else:
                 return self.send('MV%s' % newValue)
-        return self.ask(None, 'PW').addCallback(_volume1, newValue)
+        return self.ask('PW').addCallback(_volume1, newValue)
 
     def mute(self, dummyResult=None):
         """toggle between mute/unmuted"""

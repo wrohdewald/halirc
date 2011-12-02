@@ -508,9 +508,12 @@ class Serializer(object):
             msg = self.message(msg)
         return event, msg
 
-    def getAnswer(self, cmd):
+    def ask(self, *args):
         """ask the device for a value"""
-        return self.push(self.message(cmd))
+        _, msg = self.args2message(*args)
+        # strip value from message:
+        msg = self.message(msg.humanCommand())
+        return self.push(msg)
 
     def send(self, *args):
         """check the current device value and send the wanted
@@ -523,7 +526,7 @@ class Serializer(object):
                 return self.push(msg)
             else:
                 return succeed(None)
-        return self.getAnswer(msg.humanCommand()).addCallback(got)
+        return self.ask(msg).addCallback(got)
 
 class OsdCat(object):
     """lets us display OSD messages on the X server"""
