@@ -27,7 +27,10 @@ from twisted.internet.serialport import SerialPort
 
 
 class DenonMessage(Message):
-    """holds content of a message from or to a Denon"""
+    """holds content of a message from or to a Denon.
+    Since the Denon protocol is rather human readable, use that
+    as the human readable form - so please refer to the
+    Denon RS232 API docs"""
     def __init__(self, decoded=None, encoded=None):
         """for the Denon we only use the machine form, its
         readability is acceptable"""
@@ -99,7 +102,9 @@ class Denon(LineOnlyReceiver, Serializer):
         """when applicable ask Denon for current value before sending
         new value"""
         _, msg = self.args2message(*args)
-        if msg.encoded in ['MVDOWN', 'MVUP']: # the current state is never UP or DOWN
+        if msg.encoded in ['MVDOWN', 'MVUP']:
+            # the current state is never UP or DOWN, so we just
+            # send it without first asking for the old value.
             return self.push(msg)
         else:
             return Serializer.send(self, *args)
