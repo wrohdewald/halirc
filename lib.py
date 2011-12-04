@@ -464,7 +464,6 @@ class Serializer(object):
         """check for requests that should not exist anymore"""
         if not 'c' in OPTIONS.debug:
             return
-        LOGGER.debug('checking')
         for ref in Serializer.__instances:
             serializer = ref()
             if serializer:
