@@ -22,9 +22,7 @@ import datetime, daemon, weakref
 import logging, logging.handlers
 from optparse import OptionParser
 
-from twisted.protocols.basic import LineOnlyReceiver
 from twisted.internet import reactor
-from twisted.internet.protocol import ClientFactory
 from twisted.internet.protocol import ProcessProtocol
 from twisted.internet.defer import Deferred, succeed
 
@@ -43,25 +41,6 @@ def elapsedSince(since):
     if since is not None:
         x = datetime.datetime.now() - since
         return float(x.microseconds + (x.seconds + x.days * 24 * 3600) * 10**6) / 10**6
-
-class IrwProtocol(LineOnlyReceiver):
-    """protocol for reading the lirc socket"""
-    # pylint: disable=W0232
-
-    delimiter = '\n'
-
-    def lineReceived(self, data):
-        """we got a raw line from the lirc socket"""
-        code, repeat, button, remote = data.strip().split(' ')
-        # pylint: disable=E1101
-        self.factory.hal.eventReceived(RemoteEvent(remote, button, repeat, code))
-
-class IrwFactory(ClientFactory):
-    """factory for the lirc socket"""
-    protocol = IrwProtocol
-
-    def __init__(self, hal):
-        self.hal = hal
 
 def parseOptions():
     """should switch to argparse when debian stable has python 2.7"""
@@ -138,59 +117,6 @@ class Timer(object):
             else:
                 self.action()
 
-class Event(object):
-    """for all events coming from outside. Also used for
-    filter definitions."""
-    def __init__(self, sender, **kwargs):
-        self.when = datetime.datetime.now()
-        self.sender = sender
-        for key, value in kwargs.items():
-            self.__setattr__(key, value)
-    def __str__(self):
-        return str(self.__dict__)
-
-    def __eq__(self, other):
-        if type(self) != type(other):
-            return False
-        keys = set(self.__dict__.keys()) | set(other.__dict__.keys())
-        for key in keys:
-            if key != 'when':
-                myValue = getattr(self, key)
-                otherValue = getattr(other, key)
-                if myValue is not None and otherValue is not None and myValue != otherValue:
-                    return False
-        return True
-
-class RemoteEvent(Event):
-    """event from a remote control"""
-    def __init__(self, remote=None, button=None, repeat='00', code=None):
-        Event.__init__(self, 'remote%s' % remote, button=button, repeat=repeat, code=code)
-
-    def __str__(self):
-        """for debugging messages"""
-        remote = self.sender[6:]
-        # pylint: disable=E1101
-        # pylint does not know button/repeat exist, but we do
-        return ('event from remote control: %s.%s %s' % (
-           (remote or '*'),
-           (self.button or '*'),
-           (self.repeat or ''))).strip()
-
-class MessageEvent(Event):
-    """event with a message"""
-    def __init__(self, message):
-        self.message = None
-        Event.__init__(self, 'Denon', message=message)
-
-    def __str__(self):
-        return 'event from %s: %s' % (self.sender, str(self.message))
-
-    def __eq__(self, other):
-        """only compare humanCommand, not the value"""
-        if type(self) != type(other):
-            return False
-        return self.message.humanCommand() == other.message.humanCommand()
-
 class Message(object):
     """holds content of a message from or to a device"""
     def __init__(self, decoded=None, encoded=None):
@@ -203,6 +129,7 @@ class Message(object):
         self._encoded = None
         self._decoded = None
         self.isQuestion = False
+        self.when = datetime.datetime.now()
         self._setAttributes(decoded, encoded)
         self.status = 'OK' # the status returned from device: 'OK' or an error string
 
@@ -257,6 +184,8 @@ class Filter(object):
         self.kwargs = kwargs
         if not isinstance(events, list):
             events = [events]
+        for event in events:
+            assert type(event) != Message
         self.events = events
         self.maxTime = None
         self.stopIfMatch = False
@@ -286,15 +215,11 @@ class Filter(object):
 class Hal(object):
     """base class for central definitions, to be overridden by you!"""
     def __init__(self):
-        """the default lirc socket to listen on is /var/run/lirc/lircd.
-        Change that by setting self.irwSocket in setup()"""
         self.filters = []
         self.events = []
         self.timers = []
         self.__timerInterval = 20
-        self.irwSocket = '/var/run/lirc/lircd'
         self.setup()
-        reactor.connectUNIX(self.irwSocket, IrwFactory(self))
         reactor.callLater(0, self.__checkTimers)
         reactor.run()
 
@@ -304,7 +229,7 @@ class Hal(object):
     def eventReceived(self, event):
         """central entry point for all events"""
         if 'e' in OPTIONS.debug:
-            LOGGER.debug(str(event))
+            LOGGER.debug('Hal.eventReceived:%s' % str(event))
         self.events.append(event)
         matchingFilters = list(x for x in self.filters if x.matches(self.events))
         for fltr in matchingFilters:
@@ -313,9 +238,9 @@ class Hal(object):
                 if fltr.stopIfMatch:
                     break
 
-    def addRemoteFilter(self, remote, button, action, *args, **kwargs):
+    def addFilter(self, source, msg, action, *args, **kwargs):
         """a little helper for a common use case"""
-        self.filters.append(Filter(RemoteEvent(remote, button), action, *args, **kwargs))
+        self.filters.append(Filter(source.message(msg), action, *args, **kwargs))
 
     # pylint: disable=R0913
     def addTimer(self, action, args=None, name=None, minute=None, hour=None,
@@ -491,7 +416,7 @@ class Serializer(object):
         if isAnswer:
             self.tasks.gotAnswer(msg)
         if not isAnswer or self.answersAsEvents:
-            self.hal.eventReceived(MessageEvent(msg))
+            self.hal.eventReceived(msg)
 
     def push(self, cmd):
         """unconditionally send cmd"""
@@ -505,7 +430,7 @@ class Serializer(object):
     def args2message(self, *args):
         """convert the last argument to a Message"""
         assert len(args) in (1, 2, 3), args
-        if isinstance(args[0], Event):
+        if isinstance(args[0], Message):
             event = args[0]
         else:
             event = None

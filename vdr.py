@@ -140,8 +140,9 @@ class Vdr(Serializer):
     def write(self, data):
         self.protocol.transport.write(data)
 
-    def lineReceived(self, line):
+    def xlineReceived(self, line):
         """proxy"""
+        # TODO: needed why?
         self.protocol.lineReceived(line)
 
     def send(self, *args):
