@@ -18,7 +18,7 @@ along with this program if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """
 
-import datetime, daemon
+import datetime, daemon, weakref
 import logging, logging.handlers
 from optparse import OptionParser
 
@@ -71,7 +71,7 @@ def parseOptions():
 a sequence of characters: 's' shows data sent to appliances.
 'r' shows data read from appliances.
 'e' shows events received
-'c' shows changes in the appliance status.
+'c' regularly checks request queues for zombies and logs them
 'f' shows filtering info
              """, default='', metavar='DEBUG')
     parser.add_option('-b', '--background', dest='background',
@@ -328,6 +328,7 @@ class Hal(object):
         """check and execute timers"""
         for timer in self.timers:
             timer.trigger()
+        Serializer.check()
         reactor.callLater(self.__timerInterval, self.__checkTimers)
 
 class Request(Deferred):
@@ -457,11 +458,16 @@ class Serializer(object):
     """
     eol = '\r'
     message = Message
+    # __instances holds weakrefs to Serializer instances. We do not bother
+    # to ever remove items since a Serializer is normally never deleted, but
+    # just in case we use weakrefs anyway
+    __instances = []
 
     def __init__(self, hal):
         self.hal = hal
         self.tasks = TaskQueue()
         self.answersAsEvents = False
+        self.__instances.append(weakref.ref(self))
 
     def open(self): # pylint: disable=R0201
         """the device is always open"""
@@ -527,6 +533,20 @@ class Serializer(object):
             else:
                 return succeed(None)
         return self.ask(msg).addCallback(got)
+
+    @staticmethod
+    def check():
+        """check for requests that should not exist anymore"""
+        if not 'c' in OPTIONS.debug:
+            return
+        LOGGER.debug('checking')
+        for ref in Serializer.__instances:
+            serializer = ref()
+            if serializer:
+                for request in serializer.tasks.queued:
+                    age = '%ss old' % elapsedSince(request.sendTime) if request.sendTime else 'unsent'
+                    LOGGER.debug('%s has %s request %s' % \
+                      (serializer.__class__.__name__, age, request))
 
 class OsdCat(object):
     """lets us display OSD messages on the X server"""
