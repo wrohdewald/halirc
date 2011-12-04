@@ -31,18 +31,19 @@ class LircMessage(Message):
        The encoded format is as read from the lircd socket but
        without the first part with the raw code.
        The decoded format is remote.button.repeat where button
-       and repeat can be omitted. Omitted parts match any value.
+       and repeat can be omitted. Omitted button matches any button.
+       Omitted repeat defaults to '00'.
        If a part includes a dot, that part must be surrounded by
        double quotes. Double quotes are not allowed in a part.
        Allowed examples:
-       AcerP1165.Up.00
+       AcerP1165.Up.01
        AcerP1165
        "My other remote".button
     """
 
     def __init__(self, decoded=None, encoded=None):
         self.raw = None
-        self.repeat = None
+        self.repeat = '00'
         self.button = None
         self.remote = None
         Message.__init__(self, decoded, encoded)
@@ -71,7 +72,10 @@ class LircMessage(Message):
                     wantedParts -= 1
                     rest = ''
         while wantedParts:
-            yield ''
+            if wantedParts == 1:
+                yield '00' # default for repeat
+            else:
+                yield ''
             wantedParts -= 1       
 
     def _setAttributes(self, decoded, encoded):
