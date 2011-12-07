@@ -111,9 +111,10 @@ class MyHal(Hal):
         denon.answersAsEvents = True
         vdr = Vdr(self)
         lgtv = LGTV(self)
-        osdcat = None # OsdCat() # would be nice to see changes of volume or
-                                 # sound encoding on the TV but this makes
-                                 # vdpau crash with HD material
+        osdcat = OsdCat()
+        osdcat = None # would be nice to see changes of volume or
+                      # sound encoding on the TV but this makes
+                      # vdpau crash with HD material
         gembird = Gembird(self)
         for cmd in ('MV', 'SI', 'MS'):
             self.addFilter(denon, cmd, gotDenonEvent, osdcat)
