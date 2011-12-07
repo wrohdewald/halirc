@@ -77,11 +77,12 @@ class MorningAction(object):
         elif os.path.exists(self.silencer):
             os.remove(self.silencer)
 
-def allOff(dummyEvent, denon, lgtv):
+def allOff(dummyEvent, denon, lgtv, gembird):
     """as the name says. Will be called if the Denon is powered
     off - the LG does not make sense without Denon"""
     denon.standby()
     lgtv.standby()
+    gembird.poweroff(None, 3) # outlet 3 is the DVD player
 
 def gotDenonEvent(event, osdcat):
     """the Denon sent an event"""
@@ -129,7 +130,7 @@ class MyHal(Hal):
         self.addFilter(lirc, 'AcerP1165.8', denon.send, 'SICDR.TAPE')
         self.addFilter(lirc, 'AcerP1165.9', denon.send, 'SITV')
         self.addFilter(lirc, 'AcerP1165.Left', denon.poweron)
-        self.addFilter(lirc, 'AcerP1165.Right', allOff, denon, lgtv)
+        self.addFilter(lirc, 'AcerP1165.Right', allOff, denon, lgtv, gembird)
         self.addFilter(lirc, 'AcerP1165.Down', denon.volume, 'DOWN')
         self.addFilter(lirc, 'AcerP1165.Up', denon.volume, 'UP')
 
