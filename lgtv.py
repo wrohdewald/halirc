@@ -119,6 +119,7 @@ class LGTV(LineOnlyReceiver, Serializer):
     """Interface to probably most LG flatscreens"""
     delimiter = 'x' # for LineOnlyReceiver
     message = LGTVMessage
+    poweronCommands = ('input')
 
     def __init__(self, hal, device='/dev/LGPlasma'):
         Serializer.__init__(self, hal)
@@ -147,6 +148,10 @@ class LGTV(LineOnlyReceiver, Serializer):
            self.send, 'volume:0').addCallback(
            self.send, 'aspect:scan').addCallback(
            self.send, 'mutescreen:off')
+
+    def poweron(self, *dummyArgs):
+        """power on the LGTV"""
+        return self.send('power:on')
 
     def standby(self, *dummyArgs):
         """power off the LGTV"""

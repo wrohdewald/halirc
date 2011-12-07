@@ -131,13 +131,13 @@ class Gembird(Serializer):
             return 0.7
         return 0
 
-    def poweron(self, dummyEvent, which):
-        """toggle power on&off. which is 1 2 3 4 all"""
-        return self.send('outlet%d:on' % which)
+    def poweron(self, *args):
+        """switch power on. last arg is 1 2 3 4"""
+        return self.send('outlet%d:on' % args[-1])
 
-    def poweroff(self, dummyEvent, which):
-        """toggle power on&off. which is 1 2 3 4 all"""
-        return self.send('outlet%d:off' % which)
+    def poweroff(self, *args):
+        """switch power off. last arg is 1 2 3 4"""
+        return self.send('outlet%d:off' % args[-1])
 
     def lineReceived(self, data):
         """nothing special here"""

@@ -59,6 +59,7 @@ class Denon(LineOnlyReceiver, Serializer):
     """talk to a Denon AVR 2805 or similar"""
     delimiter = '\r'
     message = DenonMessage
+    poweronCommands = ('SI')
 
     def __init__(self, hal, device='/dev/denon'):
         """default device is /dev/denon"""

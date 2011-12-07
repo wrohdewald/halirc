@@ -399,6 +399,7 @@ class Serializer(object):
     # to ever remove items since a Serializer is normally never deleted, but
     # just in case we use weakrefs anyway
     __instances = []
+    poweronCommands = []
 
     def __init__(self, hal):
         self.hal = hal
@@ -462,7 +463,11 @@ class Serializer(object):
         msg = self.message(msg.humanCommand())
         return self.push(msg)
 
-    def send(self, *args):
+    def poweron(self, *dummyArgs):
+        """power on this device"""
+        pass
+
+    def _send(self, *args):
         """check the current device value and send the wanted
         new value.
         """
@@ -474,6 +479,16 @@ class Serializer(object):
             else:
                 return succeed(None)
         return self.ask(msg).addCallback(got)
+
+    def send(self, *args):
+        """check the current device value and send the wanted
+        new value. But first poweron if needed.
+        """
+        _, msg = self.args2message(*args)
+        if msg.humanCommand() in self.poweronCommands:
+            return self.poweron().addCallback(self._send, msg)
+        else:
+            return self._send(*args)
 
     @staticmethod
     def check():
