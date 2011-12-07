@@ -320,13 +320,13 @@ class Request(Deferred):
     def __str__(self):
         """for logging"""
         if self.sendTime:
-            comment = 'sent %s seconds ago' % elapsedSince(self.sendTime)
+            comment = 'sent %.3f seconds ago' % elapsedSince(self.sendTime)
         else:
             elapsed = elapsedSince(self.createTime)
             if elapsed < 0.1:
                 comment = ''
             else:
-                comment = 'unsent, created %s seconds ago' % elapsedSince(self.createTime)
+                comment = 'unsent, created %.3f seconds ago' % elapsedSince(self.createTime)
         return '%s %s %s %s' % (id(self), self.protocol.name(), self.message, comment)
 
 class TaskQueue:
