@@ -7,8 +7,25 @@ python-daemon
 python-lock
 python-twisted-conch
 
-if you use vdr on an Xserver, you
-can install xosd and show OSD messages
+if you want halirc to react on remote
+controls (you probably will), lirc needs
+to be installed and configured for the wanted
+remotes.
+
+if you want to control the Gembird USB controlled
+power outlet, please install sispmctl.
+
+if you want to control vdr, vdr needs to
+be installed.
+
+if you can show messages via an Xserver, you
+can install xosd and show OSD messages.
+For me, the nvidia vdpau driver segfaults
+if doing this while HD material is shown
+with vdr and libxineoutput.
+
+if you want to control the Gembird USB controlled
+power outlet, please install sispmctl.
 
 Usage
 =====
