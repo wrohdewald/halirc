@@ -159,7 +159,7 @@ class LGTV(LineOnlyReceiver, Serializer):
 
     def mutescreen(self, event, muteButton):
         """except for muteButton, all remote buttons make video visible again"""
-        if event.button == muteButton:
+        if event.button == muteButton and not self.videoMuted:
             self.videoMuted = datetime.datetime.now()
             # pylint: disable=E1101
             reactor.callLater(self.tvTimeout, self.standbyIfUnused)
