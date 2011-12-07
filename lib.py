@@ -48,8 +48,9 @@ def parseOptions():
     parser.add_option('-d', '--debug', dest='debug',
         help="""DEBUG:
 a sequence of characters: 's' shows data sent to appliances.
-'r' shows data read from appliances.
+'r' shows data read from appliances in human readable form.
 'e' shows events received
+'p' shows data sent and read in the transfer format
 'c' regularly checks request queues for zombies and logs them
 'f' shows filtering info
              """, default='', metavar='DEBUG')
@@ -415,12 +416,16 @@ class Serializer(object):
 
     def write(self, data):
         """default is writing to transport"""
+        if 'p' in OPTIONS.debug:
+            LOGGER.debug('WRITE to %s: %s' % (self.name(), repr(data)))
         self.transport.write(data) # pylint: disable=E1101
         # pylint Serializer by default is a mixin to a Protocol
         # which defines transport
 
     def defaultInputHandler(self, data):
         """we got a line from a device"""
+        if 'p' in OPTIONS.debug:
+            LOGGER.debug('READ from %s: %s' % (self.name(), repr(data)))
         msg = self.message(encoded=data)
         isAnswer = self.tasks.running and \
             self.tasks.running.message.humanCommand() == msg.humanCommand()
