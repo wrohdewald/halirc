@@ -349,6 +349,8 @@ class TaskQueue:
         assert isinstance(request, Request), request
         request.previous = self.allRequests[-1] if self.allRequests else None
         self.queued.append(request)
+        if 'c' in OPTIONS.debug:
+            LOGGER.debug('queued: %s' % request)
         self.allRequests = self.allRequests[-20:]
         self.allRequests.append(request)
         self.run()
