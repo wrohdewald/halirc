@@ -140,11 +140,6 @@ class Vdr(Serializer):
     def write(self, data):
         self.protocol.transport.write(data)
 
-    def xlineReceived(self, line):
-        """proxy"""
-        # TODO: needed why?
-        self.protocol.lineReceived(line)
-
     def send(self, *args):
         """unconditionally send cmd"""
         _, msg = self.args2message(*args)
