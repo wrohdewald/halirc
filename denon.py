@@ -146,7 +146,7 @@ class Denon(LineOnlyReceiver, Serializer):
         def _mute1(result):
             """result is ON or STANDBY"""
             if result.value() != 'ON':
-                return
+                return succeed(None)
             if self.mutedVolume:
                 newMV = self.mutedVolume
                 self.mutedVolume = None

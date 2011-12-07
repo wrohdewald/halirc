@@ -150,12 +150,12 @@ class LGTV(LineOnlyReceiver, Serializer):
 
     def standby(self, *dummyArgs):
         """power off the LGTV"""
-        self.send('power:off')
+        return self.send('power:off')
 
     def standbyIfUnused(self):
         """if we are muted long enough, go to standby"""
         if self.videoMuted and elapsedSince(self.videoMuted) + 1 > self.tvTimeout:
-            self.standby(None)
+            return self.standby(None)
 
     def mutescreen(self, event, muteButton):
         """except for muteButton, all remote buttons make video visible again"""
