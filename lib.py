@@ -261,6 +261,7 @@ class Request(Deferred):
     def __init__(self, protocol, message, timeout=5):
         """data without line eol. timeout -1 means we do not expect an answer."""
         self.protocol = protocol
+        self.createTime = datetime.datetime.now()
         self.sendTime = None
         assert isinstance(message, Message), message
         self.message = message
@@ -317,7 +318,15 @@ class Request(Deferred):
 
     def __str__(self):
         """for logging"""
-        return '%s %s %s' % (id(self), self.protocol.name(), self.message)
+        if self.sendTime:
+            comment = 'sent %s seconds ago' % elapsedSince(self.sendTime)
+        else:
+            elapsed = elapsedSince(self.createTime)
+            if elapsed < 0.1:
+                comment = ''
+            else:
+                comment = 'unsent, created %s seconds ago' % elapsedSince(self.createTime)
+        return '%s %s %s %s' % (id(self), self.protocol.name(), self.message, comment)
 
 class TaskQueue:
     """serializes requests for a device. If needed, delay next
@@ -468,9 +477,7 @@ class Serializer(object):
             serializer = ref()
             if serializer:
                 for request in serializer.tasks.queued:
-                    age = '%ss old' % elapsedSince(request.sendTime) if request.sendTime else 'unsent'
-                    LOGGER.debug('%s has %s request %s' % \
-                      (serializer.__class__.__name__, age, request))
+                    LOGGER.debug('open: %s' % request)
 
 class OsdCat(object):
     """lets us display OSD messages on the X server"""
