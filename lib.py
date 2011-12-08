@@ -267,6 +267,7 @@ class Request(Deferred):
         assert isinstance(message, Message), message
         self.message = message
         self.timeout = timeout
+        self.retries = 0
         Deferred.__init__(self)
 
     def restOfDelay(self, oldRequest):
@@ -312,10 +313,14 @@ class Request(Deferred):
 
     def timedout(self):
         """do callback(None) and log warning"""
-        if self.timeout != -1 and not self.called:
-            LOGGER.warning('request timed out: %s' % self)
+        if self.timeout == -1:
+            return succeed(None)
         if not self.called:
-            self.protocol.lineReceived('')
+            if self.retries < 2:
+                self.retries += 1
+                return self.send()
+            else:
+                self.errback(Exception('request timed out: %s' % self))
 
     def __str__(self):
         """for logging"""
@@ -354,8 +359,16 @@ class TaskQueue:
             LOGGER.debug('queued: %s' % request)
         self.allRequests = self.allRequests[-20:]
         self.allRequests.append(request)
+        request.addErrback(self.failed)
         self.run()
         return request
+
+    def failed(self, result):
+        """a request failed. Clear the queue."""
+        LOGGER.error(result.getErrorMessage())
+        LOGGER.error('Request %s failed, clearing queue for %s' % (id(self), self.running.protocol.name()))
+        self.running = None
+        self.queued = []
 
     def run(self):
         """if no task is active and we have pending tasks,
