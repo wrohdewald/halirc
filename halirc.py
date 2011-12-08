@@ -93,6 +93,17 @@ def gotDenonEvent(event, osdcat):
     if osdcat:
         osdcat.write(value)
 
+def desktop(dummyEvent):
+    """/usr/local/bin/sxfewatch watches for this file
+    and starts & stops the sxfe frontend accordingly.
+    vdr-sxfe uses the alsa device exclusively"""
+    watchFile = '/video0/nosxfe'
+    if os.path.exists(watchFile):
+        os.remove(watchFile)
+    else:
+        with open(watchFile,'w') as watchFd:
+            watchFd.write('\n')
+
 class MyHal(Hal):
     """an example for user definitions"""
 
@@ -142,6 +153,8 @@ class MyHal(Hal):
         self.addFilter(lirc, 'Receiver12V.3', lgtv.send, 'input:HDMI2')
         self.addFilter(lirc, 'Receiver12V.4', lgtv.send, 'input:Component')
         self.addFilter(lirc, 'Receiver12V.5', lgtv.send, 'input:DTV')
+
+        self.addFilter(lirc, 'Receiver12V.6', desktop)
 
         MorningAction(self, vdr, denon, lgtv)
 
