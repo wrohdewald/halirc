@@ -86,8 +86,8 @@ def allOff(dummyEvent, denon, lgtv, gembird):
 
 def gotDenonEvent(event, osdcat):
     """the Denon sent an event"""
-    value = event.message.value()
-    if event.message.humanCommand() == 'MV':
+    value = event.value()
+    if event.humanCommand() == 'MV':
         if len(value) == 3:
             value = value[:2] + '.5'
     if osdcat:
