@@ -87,7 +87,7 @@ def allOff(dummyEvent, denon, lgtv, gembird):
 
 class MyHal(Hal):
     """an example for user definitions"""
-    potentialHDContent = False
+    potentialHDContent = True
       # would be nice to see changes of volume or
       # sound encoding on the TV but this makes
       # vdpau crash with HD material
