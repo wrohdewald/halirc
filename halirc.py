@@ -154,7 +154,7 @@ class MyHal(Hal):
 
         self.addFilter(lirc, 'Receiver12V.0', lgtv.standby)
         self.addFilter(lirc, 'Receiver12V.1', lgtv.send, 'power:on')
-        self.addFilter(lirc, 'Hauppauge6400', lgtv.mutescreen, 'Power2')
+        self.addFilter(lirc, 'Hauppauge6400', lgtv.mutescreen, 'Power2', denon)
         self.addFilter(lirc, 'Receiver12V.2', lgtv.send, 'input:HDMI1')
         self.addFilter(lirc, 'Receiver12V.3', lgtv.send, 'input:HDMI2')
         self.addFilter(lirc, 'Receiver12V.4', lgtv.send, 'input:Component')

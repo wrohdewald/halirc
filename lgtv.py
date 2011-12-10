@@ -162,7 +162,7 @@ class LGTV(LineOnlyReceiver, Serializer):
         if self.videoMuted and elapsedSince(self.videoMuted) + 1 > self.tvTimeout:
             return self.standby(None)
 
-    def mutescreen(self, event, muteButton):
+    def mutescreen(self, event, muteButton, denon):
         """except for muteButton, all remote buttons make video visible again"""
         def got1(answer):
             """got answer"""
@@ -182,6 +182,7 @@ class LGTV(LineOnlyReceiver, Serializer):
                 self.videoMuted = datetime.datetime.now()
                 return self.reallySend('mutescreen:on')
             else:
+                denon.poweron()
                 return self.init()
         return self.ask('power').addCallback(got1)
 
