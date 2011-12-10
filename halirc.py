@@ -84,28 +84,37 @@ def allOff(dummyEvent, denon, lgtv, gembird):
     lgtv.standby()
     gembird.poweroff(None, 3) # outlet 3 is the DVD player
 
-def gotDenonEvent(event, osdcat):
-    """the Denon sent an event"""
-    value = event.value()
-    if event.humanCommand() == 'MV':
-        if len(value) == 3:
-            value = value[:2] + '.5'
-    if osdcat:
-        osdcat.write(value)
-
-def desktop(dummyEvent):
-    """/usr/local/bin/sxfewatch watches for this file
-    and starts & stops the sxfe frontend accordingly.
-    vdr-sxfe uses the alsa device exclusively"""
-    watchFile = '/video0/nosxfe'
-    if os.path.exists(watchFile):
-        os.remove(watchFile)
-    else:
-        with open(watchFile,'w') as watchFd:
-            watchFd.write('\n')
 
 class MyHal(Hal):
     """an example for user definitions"""
+    potentialHDContent = False
+      # would be nice to see changes of volume or
+      # sound encoding on the TV but this makes
+      # vdpau crash with HD material
+
+    def gotDenonEvent(self, event, osdcat):
+        """the Denon sent an event"""
+        if self.potentialHDContent:
+            return
+        value = event.value()
+        if event.humanCommand() == 'MV':
+            if len(value) == 3:
+                value = value[:2] + '.5'
+        if osdcat:
+            osdcat.write(value)
+
+    def desktop(self, dummyEvent):
+        """/usr/local/bin/sxfewatch watches for this file
+        and starts & stops the sxfe frontend accordingly.
+        vdr-sxfe uses the alsa device exclusively"""
+        watchFile = '/video0/nosxfe'
+        if os.path.exists(watchFile):
+            self.potentialHDContent = True
+            os.remove(watchFile)
+        else:
+            self.potentialHDContent = False
+            with open(watchFile,'w') as watchFd:
+                watchFd.write('\n')
 
     def setup(self):
         """
@@ -123,12 +132,9 @@ class MyHal(Hal):
         vdr = Vdr(self)
         lgtv = LGTV(self)
         osdcat = OsdCat()
-        osdcat = None # would be nice to see changes of volume or
-                      # sound encoding on the TV but this makes
-                      # vdpau crash with HD material
         gembird = Gembird(self)
         for cmd in ('MV', 'SI', 'MS'):
-            self.addFilter(denon, cmd, gotDenonEvent, osdcat)
+            self.addFilter(denon, cmd, self.gotDenonEvent, osdcat)
         self.addFilter(lirc, 'AcerP1165.PgUp', denon.mute)
         self.addFilter(lirc, 'AcerP1165.PgDown', denon.queryStatus)
         self.addFilter(lirc, 'AcerP1165.0', denon.send, 'SIDBS/SAT')
@@ -154,7 +160,7 @@ class MyHal(Hal):
         self.addFilter(lirc, 'Receiver12V.4', lgtv.send, 'input:Component')
         self.addFilter(lirc, 'Receiver12V.5', lgtv.send, 'input:DTV')
 
-        self.addFilter(lirc, 'Receiver12V.6', desktop)
+        self.addFilter(lirc, 'Receiver12V.6', self.desktop)
 
         MorningAction(self, vdr, denon, lgtv)
 
