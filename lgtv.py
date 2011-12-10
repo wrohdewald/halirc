@@ -164,25 +164,26 @@ class LGTV(LineOnlyReceiver, Serializer):
 
     def mutescreen(self, event, muteButton):
         """except for muteButton, all remote buttons make video visible again"""
-        if event.button == muteButton and not self.videoMuted:
-            self.videoMuted = datetime.datetime.now()
-            # pylint: disable=E1101
-            reactor.callLater(self.tvTimeout, self.standbyIfUnused)
-            return self.send('mutescreen:on')
-        else:
-            def got1(answer):
-                """got answer"""
-                if answer.value() != 'on':
-                    return self.init()
-                else:
-                    return self.ask('mutescreen').addCallback(got2)
-            def got2(answer):
-                """got answer"""
-                if answer.value() != 'off':
-                    return self.init()
-                else:
-                    return succeed(None)
-            return self.ask('power').addCallback(got1)
+        def got1(answer):
+            """got answer"""
+            if answer.value() != 'on':
+                return self.init()
+            else:
+                return self.ask('mutescreen').addCallback(got2)
+        def got2(answer):
+            """got answer"""
+            if answer.value() == 'on' or event.button != muteButton:
+                newValue = 'off'
+            else:
+                newValue = 'on'
+            if answer.value() == newValue:
+                return succeed(None)
+            if newValue == 'on':
+                self.videoMuted = datetime.datetime.now()
+                return self.reallySend('mutescreen:on')
+            else:
+                return self.init()
+        return self.ask('power').addCallback(got1)
 
     def lineReceived(self, data):
         Serializer.defaultInputHandler(self, data)

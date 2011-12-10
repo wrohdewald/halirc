@@ -480,6 +480,11 @@ class Serializer(object):
         """power on this device"""
         pass
 
+    def reallySend(self, *args):
+        """send command without checking"""
+        _, msg = self.args2message(*args)
+        return self.push(msg)
+
     def _send(self, *args):
         """check the current device value and send the wanted
         new value.
