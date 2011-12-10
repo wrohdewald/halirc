@@ -467,7 +467,7 @@ class Serializer(object):
     def args2message(self, *args):
         """convert the last argument to a Message"""
         assert len(args) in (1, 2, 3), args
-        if isinstance(args[0], Message):
+        if len(args) > 1 and isinstance(args[0], Message):
             event = args[0]
         else:
             event = None
