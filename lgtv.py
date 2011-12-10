@@ -180,6 +180,7 @@ class LGTV(LineOnlyReceiver, Serializer):
                 return succeed(None)
             if newValue == 'on':
                 self.videoMuted = datetime.datetime.now()
+                reactor.callLater(self.tvTimeout, self.standbyIfUnused)
                 return self.reallySend('mutescreen:on')
             else:
                 denon.poweron()
