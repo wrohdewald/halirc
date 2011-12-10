@@ -173,6 +173,13 @@ class Message(object):
         """are they identical?"""
         return self.decoded == other.decoded
 
+    def matches(self, other):
+        """used for filters"""
+        if self.isQuestion or other.isQuestion:
+            return self.humanCommand() == other.humanCommand()
+        else:
+            return self == other
+
 class Filter(object):
     """a filter always has a name. events is a single event or a list of events.
     Attributes:
@@ -201,7 +208,7 @@ class Filter(object):
         if len(comp) > 1 and comp[-1].when - comp[0].when > self.maxTime:
             # the events are too far away from each other:
             return False
-        return all(comp[x] == self.events[x] for x in range(0, len(comp)))
+        return all(comp[x].matches(self.events[x]) for x in range(0, len(comp)))
 
     def execute(self, event):
         """execute this filter action"""
