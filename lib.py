@@ -244,8 +244,13 @@ class Filter(object):
 
     def __str__(self):
         """return name"""
-        return '%s[%s]: %s(%s,%s)' % (id(self), ','.join(str(x) for x in self.parts),
-            self.action, self.args, self.kwargs)
+        action = '.'.join([self.action.im_class.__name__, self.action.__name__])
+        result = '%s: %s' % (','.join(str(x) for x in self.parts), action)
+        if self.args:
+            result += ' args=%s' % str(self.args)
+        if self.kwargs:
+            result += ' kwargs=%s' % str(self.kwargs)
+        return result
 
 class Hal(object):
     """base class for central definitions, to be overridden by you!"""
