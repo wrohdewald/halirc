@@ -181,34 +181,35 @@ class Message(object):
             return self == other
 
 class Filter(object):
-    """a filter always has a name. events is a single event or a list of events.
+    """a filter always has a name. parts is a single event or a list of events.
+       parts will be compared with the actual received events."""
     Attributes:
-        maxTime        of type timedelta, with default = len(events) seconds.
+        maxTime        of type timedelta, with default = len(parts) seconds.
         stopIfMatch    if True and this Filter matches, do not look at following filters
     """
-    def __init__(self, events, action, *args, **kwargs):
+    def __init__(self, parts, action, *args, **kwargs):
         self.action = action
         self.args = args
         self.kwargs = kwargs
-        if not isinstance(events, list):
-            events = [events]
-        for event in events:
+        if not isinstance(parts, list):
+            parts = [parts]
+        for event in parts:
             assert type(event) != Message
-        self.events = events
+        self.parts = parts
         self.maxTime = None
         self.stopIfMatch = False
-        if len(self.events) > 1 and not self.maxTime:
-            self.maxTime = datetime.timedelta(seconds=len(self.events)-1)
+        if len(self.parts) > 1 and not self.maxTime:
+            self.maxTime = datetime.timedelta(seconds=len(self.parts)-1)
 
     def matches(self, events):
         """does the filter match the end of the actual events?"""
-        comp = events[-len(self.events):]
-        if len(comp) < len(self.events):
+        comp = events[-len(self.parts):]
+        if len(comp) < len(self.parts):
             return False
         if len(comp) > 1 and comp[-1].when - comp[0].when > self.maxTime:
             # the events are too far away from each other:
             return False
-        return all(comp[x].matches(self.events[x]) for x in range(0, len(comp)))
+        return all(comp[x].matches(self.parts[x]) for x in range(0, len(comp)))
 
     def execute(self, event):
         """execute this filter action"""
@@ -218,7 +219,7 @@ class Filter(object):
 
     def __str__(self):
         """return name"""
-        return '[%s]' % ','.join(str(x) for x in self.events)
+        return '[%s]' % ','.join(str(x) for x in self.parts)
 
 class Hal(object):
     """base class for central definitions, to be overridden by you!"""
