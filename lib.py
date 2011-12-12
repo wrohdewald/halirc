@@ -187,6 +187,9 @@ class Filter(object):
         maxTime        of type timedelta, with default = len(parts) seconds.
         stopIfMatch    if True and this Filter matches, do not look at following filters
     """
+    running = None
+    queued = []
+
     def __init__(self, parts, action, *args, **kwargs):
         self.action = action
         self.args = args
@@ -196,6 +199,7 @@ class Filter(object):
         for event in parts:
             assert type(event) != Message
         self.parts = parts
+        self.event = None # the current event having triggered this filter
         self.maxTime = None
         self.stopIfMatch = False
         if len(self.parts) > 1 and not self.maxTime:
@@ -214,8 +218,29 @@ class Filter(object):
     def execute(self, event):
         """execute this filter action"""
         if 'f' in OPTIONS.debug:
-            LOGGER.debug('executing filter %s' % str(self))
-        return self.action(event, *self.args, **self.kwargs)
+            LOGGER.debug('ACTION queue:%s' % str(self))
+        self.event = event
+        Filter.queued.append(self)
+        self.run()
+
+    @staticmethod
+    def run():
+        """if no filter action is currently running and we have some in the
+        queue, start the next one"""
+        if Filter.running:
+            return
+        if Filter.queued:
+            fltr = Filter.running = Filter.queued.pop(0)
+            if 'f' in OPTIONS.debug:
+                LOGGER.debug('ACTION start:%s' % str(fltr))
+            return fltr.action(fltr.event, *fltr.args, **fltr.kwargs).addCallback(fltr.executed)
+
+    def executed(self, dummyResult):
+        """now the filter has finished. TODO: error path"""
+        if 'f' in OPTIONS.debug:
+            LOGGER.debug('ACTION done :%s ' % self)
+        Filter.running = None
+        self.run()
 
     def __str__(self):
         """return name"""
