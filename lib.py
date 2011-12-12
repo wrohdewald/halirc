@@ -556,6 +556,7 @@ class OsdCat(object):
         self.open()
         self.__osdcat.transport.write(data + '\n')
         self.__lastSent = datetime.datetime.now()
+        return succeed(None)
 
 def main(hal):
     """it should not be necessary to ever adapt this"""

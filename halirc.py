@@ -24,7 +24,7 @@ your own myhalirc.py and do there whatever you want.
 
 import os
 
-from twisted.internet.defer import succeed
+from twisted.internet.defer import succeed, DeferredList
 
 from lib import LOGGER, Hal, main, OsdCat
 from lirc import Lirc
@@ -82,10 +82,10 @@ class MorningAction(object):
 def allOff(dummyEvent, denon, lgtv, gembird):
     """as the name says. Will be called if the Denon is powered
     off - the LG does not make sense without Denon"""
-    denon.standby()
-    lgtv.standby()
-    gembird.poweroff(None, 3) # outlet 3 is the DVD player
-
+    return DeferredList([
+        denon.standby(),
+        lgtv.standby(),
+        gembird.poweroff(None, 3)]) # outlet 3 is the DVD player
 
 class MyHal(Hal):
     """an example for user definitions"""
@@ -107,13 +107,15 @@ class MyHal(Hal):
     def gotDenonEvent(self, event, osdcat):
         """the Denon sent an event"""
         if self.potentialHDContent:
-            return
+            return succeed(None)
         value = event.value()
         if event.humanCommand() == 'MV':
             if len(value) == 3:
                 value = value[:2] + '.5'
         if osdcat:
-            osdcat.write(value)
+            return osdcat.write(value)
+        else:
+            return succeed(None)
 
     def desktop(self, dummyEvent):
         """toggle between desktop mode and vdr-sxfe"""
