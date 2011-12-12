@@ -64,7 +64,7 @@ class LGTVMessage(Message):
         Message.__init__(self, decoded, encoded)
 
     def _setAttributes(self, decoded, encoded):
-        """The LG interface is a but
+        """The LG interface is a bit
         stupid: When sending, we send two characters for the command
         like ka or ma. But the answer only returns the second character,
         so we cannot easily find the corresponding full command"""
