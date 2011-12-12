@@ -24,6 +24,8 @@ your own myhalirc.py and do there whatever you want.
 
 import os
 
+from twisted.internet.defer import succeed
+
 from lib import LOGGER, Hal, main, OsdCat
 from lirc import Lirc
 from gembird import Gembird
@@ -87,10 +89,20 @@ def allOff(dummyEvent, denon, lgtv, gembird):
 
 class MyHal(Hal):
     """an example for user definitions"""
-    potentialHDContent = True
-      # would be nice to see changes of volume or
-      # sound encoding on the TV but this makes
-      # vdpau crash with HD material
+
+    def __init__(self):
+        self.sxfeWatchFile = '/video0/nosxfe'
+        # /usr/local/bin/sxfewatch watches for this file
+        # and starts & stops the sxfe frontend accordingly.
+        # vdr-sxfe uses the alsa device exclusively
+        self.potentialHDContent = not self.desktopActive()
+        # it would be nice to see changes of volume or sound encoding
+        # on the TV but this makes vdpau crash with HD material
+        Hal.__init__(self)
+
+    def desktopActive(self):
+        """True if vdr-sxfe does not run"""
+        return os.path.exists(self.sxfeWatchFile)
 
     def gotDenonEvent(self, event, osdcat):
         """the Denon sent an event"""
@@ -104,17 +116,15 @@ class MyHal(Hal):
             osdcat.write(value)
 
     def desktop(self, dummyEvent):
-        """/usr/local/bin/sxfewatch watches for this file
-        and starts & stops the sxfe frontend accordingly.
-        vdr-sxfe uses the alsa device exclusively"""
-        watchFile = '/video0/nosxfe'
-        if os.path.exists(watchFile):
+        """toggle between desktop mode and vdr-sxfe"""
+        if self.desktopActive():
             self.potentialHDContent = True
-            os.remove(watchFile)
+            os.remove(self.sxfeWatchFile)
         else:
             self.potentialHDContent = False
-            with open(watchFile,'w') as watchFd:
+            with open(self.sxfeWatchFile,'w') as watchFd:
                 watchFd.write('\n')
+        return succeed(None)
 
     def setup(self):
         """
