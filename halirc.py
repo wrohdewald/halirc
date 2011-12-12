@@ -146,8 +146,8 @@ class MyHal(Hal):
         osdcat = OsdCat()
         gembird = Gembird(self)
         for cmd in ('MV', 'SI', 'MS'):
-            self.addFilter(denon, cmd, self.gotDenonEvent, osdcat)
-        self.addFilter(lirc, 'AcerP1165.PgUp', denon.mute)
+            self.addRepeatableFilter(denon, cmd, self.gotDenonEvent, osdcat)
+        self.addRepeatableFilter(lirc, 'AcerP1165.PgUp', denon.mute)
         self.addFilter(lirc, 'AcerP1165.PgDown', denon.queryStatus)
         self.addFilter(lirc, 'AcerP1165.0', denon.send, 'SIDBS/SAT')
         self.addFilter(lirc, 'AcerP1165.1', denon.send, 'SICD')
@@ -161,18 +161,18 @@ class MyHal(Hal):
         self.addFilter(lirc, 'AcerP1165.9', denon.send, 'SITV')
         self.addFilter(lirc, 'AcerP1165.Left', denon.poweron)
         self.addFilter(lirc, 'AcerP1165.Right', allOff, denon, lgtv, gembird)
-        self.addFilter(lirc, 'AcerP1165.Down', denon.volume, 'DOWN')
-        self.addFilter(lirc, 'AcerP1165.Up', denon.volume, 'UP')
+        self.addRepeatableFilter(lirc, 'AcerP1165.Down', denon.volume, 'DOWN')
+        self.addRepeatableFilter(lirc, 'AcerP1165.Up', denon.volume, 'UP')
 
         self.addFilter(lirc, 'Receiver12V.0', lgtv.standby)
         self.addFilter(lirc, 'Receiver12V.1', lgtv.send, 'power:on')
-        self.addFilter(lirc, 'Hauppauge6400', lgtv.mutescreen, 'Power2', denon)
+        self.addRepeatableFilter(lirc, 'Hauppauge6400', lgtv.mutescreen, 'Power2', denon)
         self.addFilter(lirc, 'Receiver12V.2', lgtv.send, 'input:HDMI1')
         self.addFilter(lirc, 'Receiver12V.3', lgtv.send, 'input:HDMI2')
         self.addFilter(lirc, 'Receiver12V.4', lgtv.send, 'input:Component')
         self.addFilter(lirc, 'Receiver12V.5', lgtv.send, 'input:DTV')
 
-        self.addFilter(lirc, 'Receiver12V.6', self.desktop)
+        self.addRepeatableFilter(lirc, 'Receiver12V.6', self.desktop)
 
         MorningAction(self, vdr, denon, lgtv)
 

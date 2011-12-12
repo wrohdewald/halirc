@@ -182,13 +182,17 @@ class Message(object):
 
 class Filter(object):
     """a filter always has a name. parts is a single event or a list of events.
-       parts will be compared with the actual received events."""
+       parts will be compared with the actual received events.
     Attributes:
         maxTime        of type timedelta, with default = len(parts) seconds.
-        stopIfMatch    if True and this Filter matches, do not look at following filters
+        stopIfMatch    Default is False. If True and this Filter matches, do not
+                       look at following filters
+        mayRepeat      Default is False. If True, the filter will not trigger
+                       if it is the last previously triggered filter
     """
     running = None
     queued = []
+    previousExecuted = None
 
     def __init__(self, parts, action, *args, **kwargs):
         self.action = action
@@ -202,6 +206,7 @@ class Filter(object):
         self.event = None # the current event having triggered this filter
         self.maxTime = None
         self.stopIfMatch = False
+        self.mayRepeat = False
         if len(self.parts) > 1 and not self.maxTime:
             self.maxTime = datetime.timedelta(seconds=len(self.parts)-1)
 
@@ -217,10 +222,15 @@ class Filter(object):
 
     def execute(self, event):
         """execute this filter action"""
+        if not self.mayRepeat and id(self) == id(Filter.previousExecuted):
+            if 'f' in OPTIONS.debug:
+                LOGGER.debug('ACTION ignore:%s' % str(self))
+            return
         if 'f' in OPTIONS.debug:
             LOGGER.debug('ACTION queue:%s' % str(self))
         self.event = event
         Filter.queued.append(self)
+        Filter.previousExecuted = self
         self.run()
 
     @staticmethod
@@ -280,7 +290,16 @@ class Hal(object):
 
     def addFilter(self, source, msg, action, *args, **kwargs):
         """a little helper for a common use case"""
-        self.filters.append(Filter(source.message(msg), action, *args, **kwargs))
+        fltr = Filter(source.message(msg), action, *args, **kwargs)
+        self.filters.append(fltr)
+        return fltr
+
+    def addRepeatableFilter(self, source, msg, action, *args, **kwargs):
+        """a little helper for a common use case"""
+        fltr = Filter(source.message(msg), action, *args, **kwargs)
+        fltr.mayRepeat = True
+        self.filters.append(fltr)
+        return fltr
 
     # pylint: disable=R0913
     def addTimer(self, action, args=None, name=None, minute=None, hour=None,
