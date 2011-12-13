@@ -117,7 +117,7 @@ class MyHal(Hal):
         else:
             return succeed(None)
 
-    def desktop(self, dummyEvent):
+    def desktop(self, dummyEvent, denon, vdr):
         """toggle between desktop mode and vdr-sxfe"""
         if self.desktopActive():
             self.potentialHDContent = True
@@ -126,6 +126,7 @@ class MyHal(Hal):
             self.potentialHDContent = False
             with open(self.sxfeWatchFile,'w') as watchFd:
                 watchFd.write('\n')
+            vdr.send('hitk stop')
         return succeed(None)
 
     def setup(self):
@@ -172,7 +173,7 @@ class MyHal(Hal):
         self.addFilter(lirc, 'Receiver12V.4', lgtv.send, 'input:Component')
         self.addFilter(lirc, 'Receiver12V.5', lgtv.send, 'input:DTV')
 
-        self.addRepeatableFilter(lirc, 'AcerP1165.Zoom', self.desktop)
+        self.addRepeatableFilter(lirc, 'AcerP1165.Zoom', self.desktop, denon, vdr)
         self.addRepeatableFilter(lirc, 'AcerP1165.Source', lgtv.aspect, ('scan', '4:3', '14:9'))
 
         MorningAction(self, vdr, denon, lgtv)
