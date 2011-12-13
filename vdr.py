@@ -67,6 +67,8 @@ class VdrProtocol(LineOnlyReceiver, Telnet):
 
     def lineReceived(self, line):
         """we got a full line from vdr"""
+        if 'p' in OPTIONS.debug:
+            LOGGER.debug('READ from %s: %s' % (self.wrapper.name(), repr(line)))
         if line.startswith('221 '):
             # this is an error because we should have
             # closed the connection ourselves after a
@@ -79,9 +81,6 @@ class VdrProtocol(LineOnlyReceiver, Telnet):
             return
         if line.split(' ')[0] not in ['250', '354', '550']:
             LOGGER.error('from %s: %s' % (self.wrapper.name(), line))
-        else:
-            if 'r' in OPTIONS.debug:
-                LOGGER.debug('from %s: %s' % (self.wrapper.name(), line))
         if self.wrapper.tasks.running:
             self.wrapper.tasks.gotAnswer(VdrMessage(line))
         else:

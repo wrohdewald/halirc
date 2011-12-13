@@ -369,6 +369,8 @@ class Request(Deferred):
             self.sendTime = datetime.datetime.now()
             reactor.callLater(self.timeout, self.timedout)
             data = self.message.encoded + self.protocol.eol
+            if 'p' in OPTIONS.debug:
+                LOGGER.debug('WRITE to %s: %s' % (self.protocol.name(), repr(data)))
             return self.protocol.write(data)
         return self.protocol.open().addCallback(self.__delaySending).addCallback(send1)
 
@@ -491,8 +493,6 @@ class Serializer(object):
 
     def write(self, data):
         """default is writing to transport"""
-        if 'p' in OPTIONS.debug:
-            LOGGER.debug('WRITE to %s: %s' % (self.name(), repr(data)))
         self.transport.write(data) # pylint: disable=E1101
         # pylint Serializer by default is a mixin to a Protocol
         # which defines transport

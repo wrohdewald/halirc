@@ -145,8 +145,6 @@ class Gembird(Serializer):
 
     def write(self, data):
         """write to the osd_cat process"""
-        if 's' in OPTIONS.debug:
-            LOGGER.debug('sending to Gembird: %s' % data)
         sisargs = ['sispmctl', '-d', self.device]
         sisargs.append(data)
         reactor.spawnProcess(GembirdProtocol(self), 'sispmctl', args=sisargs, env={'PATH': os.environ['PATH']})
