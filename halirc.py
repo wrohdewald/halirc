@@ -172,7 +172,7 @@ class MyHal(Hal):
         self.addFilter(lirc, 'Receiver12V.4', lgtv.send, 'input:Component')
         self.addFilter(lirc, 'Receiver12V.5', lgtv.send, 'input:DTV')
 
-        self.addRepeatableFilter(lirc, 'Receiver12V.6', self.desktop)
+        self.addRepeatableFilter(lirc, 'AcerP1165.Zoom', self.desktop)
 
         MorningAction(self, vdr, denon, lgtv)
 
