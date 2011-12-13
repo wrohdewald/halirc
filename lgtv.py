@@ -187,6 +187,17 @@ class LGTV(LineOnlyReceiver, Serializer):
                 return self.init()
         return self.ask('power').addCallback(got1)
 
+    def aspect(self, dummyEvent, cycle):
+        """cycle aspect ratio between our preferred values"""
+        def got1(answer):
+            """got answer"""
+            if answer.value() not in cycle:
+                newValue = cycle[0]
+            else:
+                newValue = (cycle + cycle)[cycle.index(answer.value()) + 1]
+            return self.push('aspect:%s' % newValue)
+        return self.ask('aspect').addCallback(got1)
+
     def lineReceived(self, data):
         Serializer.defaultInputHandler(self, data)
 
