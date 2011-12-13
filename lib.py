@@ -509,10 +509,11 @@ class Serializer(object):
         if not isAnswer or self.answersAsEvents:
             self.hal.eventReceived(msg)
 
-    def push(self, cmd):
+    def push(self, *args):
         """unconditionally send cmd"""
-        assert isinstance(cmd, Message), cmd
-        return self.tasks.push(Request(self, cmd))
+        _, msg = self.args2message(*args)
+        assert isinstance(msg, Message), msg
+        return self.tasks.push(Request(self, msg))
 
     def name(self):
         """for logging messages"""

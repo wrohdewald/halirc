@@ -151,7 +151,7 @@ class Denon(LineOnlyReceiver, Serializer):
             if self.mutedVolume:
                 newMV = self.mutedVolume
                 self.mutedVolume = None
-                return self.send('MV%s' % newMV)
+                return self.push('MV%s' % newMV)
             return self.ask('MV').addCallback(_mute2)
         def _mute2(result):
             """result is the volume before unmuting"""
@@ -162,5 +162,5 @@ class Denon(LineOnlyReceiver, Serializer):
                 newMV = '40'
             else:
                 newMV = '20'
-            return self.send('MV%s' % newMV)
+            return self.push('MV%s' % newMV)
         return self.ask('PW').addCallback(_mute1)
