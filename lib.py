@@ -18,7 +18,7 @@ along with this program if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """
 
-import datetime, daemon, weakref
+import datetime, daemon, weakref, types
 import logging, logging.handlers
 from optparse import OptionParser
 
@@ -254,7 +254,10 @@ class Filter(object):
 
     def __str__(self):
         """return name"""
-        action = '.'.join([self.action.im_class.__name__, self.action.__name__])
+        if isinstance(self.action, types.FunctionType):
+            action = self.action.__name__
+        else:
+            action = '.'.join([self.action.im_class.__name__, self.action.__name__])
         result = '%s: %s' % (','.join(str(x) for x in self.parts), action)
         if self.args:
             result += ' args=%s' % str(self.args)
