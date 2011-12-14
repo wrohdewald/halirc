@@ -95,7 +95,7 @@ class MyHal(Hal):
         # /usr/local/bin/sxfewatch watches for this file
         # and starts & stops the sxfe frontend accordingly.
         # vdr-sxfe uses the alsa device exclusively
-        self.potentialHDContent = not self.desktopActive()
+        self.osdCatEnabled = self.desktopActive()
         # it would be nice to see changes of volume or sound encoding
         # on the TV but this makes vdpau crash with HD material
         self.radioPreset = ''
@@ -107,7 +107,7 @@ class MyHal(Hal):
 
     def gotDenonEvent(self, event, osdcat):
         """the Denon sent an event"""
-        if self.potentialHDContent:
+        if not self.osdCatEnabled:
             return succeed(None)
         value = event.value()
         if event.humanCommand() == 'MV':
@@ -131,10 +131,10 @@ class MyHal(Hal):
     def desktop(self, dummyEvent, denon, vdr):
         """toggle between desktop mode and vdr-sxfe"""
         if self.desktopActive():
-            self.potentialHDContent = True
+            self.osdCatEnabled = False
             os.remove(self.sxfeWatchFile)
         else:
-            self.potentialHDContent = False
+            self.osdCatEnabled = True
             with open(self.sxfeWatchFile,'w') as watchFd:
                 watchFd.write('\n')
             vdr.send('hitk stop')
