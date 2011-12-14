@@ -608,6 +608,8 @@ class OsdCat(object):
     def write(self, data):
         """write to the osd_cat process"""
         self.open()
+        if 'p' in OPTIONS.debug:
+            LOGGER.debug('WRITE to OsdCat: %s' % repr(data))
         self.__osdcat.transport.write(data + '\n')
         self.__lastSent = datetime.datetime.now()
         return succeed(None)
