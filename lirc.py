@@ -23,7 +23,7 @@ from twisted.internet import reactor
 from twisted.internet.endpoints import UNIXClientEndpoint
 from twisted.internet.protocol import ClientFactory
 
-from lib import Message, Serializer
+from lib import Message, Serializer, OPTIONS, LOGGER
 
 class LircMessage(Message):
     """holds contents received from a remote control or sent with
@@ -117,6 +117,8 @@ class LircProtocol(LineOnlyReceiver):
 
     def lineReceived(self, data):
         """we got a raw line from the lirc socket"""
+        if 'p' in OPTIONS.debug:
+            LOGGER.debug('READ from %s: %s' % (self.wrapper.name(), repr(data)))
         msg = self.wrapper.message(encoded=data)
         self.wrapper.hal.eventReceived(msg)
 
