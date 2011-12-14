@@ -98,6 +98,7 @@ class MyHal(Hal):
         self.potentialHDContent = not self.desktopActive()
         # it would be nice to see changes of volume or sound encoding
         # on the TV but this makes vdpau crash with HD material
+        self.radioPreset = ''
         Hal.__init__(self)
 
     def desktopActive(self):
@@ -112,6 +113,16 @@ class MyHal(Hal):
         if event.humanCommand() == 'MV':
             if len(value) == 3:
                 value = value[:2] + '.5'
+        elif event.humanCommand() == 'TP':
+            self.radioPreset = 'Speicher ' + value
+            # after TP, the Denon always sends TF
+            return succeed(None)
+        elif event.humanCommand() == 'TF':
+            if value >= '050000':
+                value = '%s AM %d kHz' % (self.radioPreset, int(value[:4]))
+            else:
+                value = '%s FM %d.%s MHz' % (self.radioPreset, int(value[:4]), value[4:])
+            self.radioPreset = ''
         if osdcat:
             return osdcat.write(value)
         else:
@@ -146,7 +157,7 @@ class MyHal(Hal):
         lgtv = LGTV(self)
         osdcat = OsdCat()
         gembird = Gembird(self)
-        for cmd in ('MV', 'SI', 'MS'):
+        for cmd in ('MV', 'SI', 'MS', 'TF', 'TP'):
             self.addRepeatableFilter(denon, cmd, self.gotDenonEvent, osdcat)
         self.addRepeatableFilter(lirc, 'AcerP1165.PgUp', denon.mute)
         self.addFilter(lirc, 'AcerP1165.PgDown', denon.queryStatus)
