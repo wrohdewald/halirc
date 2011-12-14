@@ -180,10 +180,14 @@ class MyHal(Hal):
         self.addFilter(lirc, 'Receiver12V.1', lgtv.send, 'power:on')
         self.addRepeatableFilter(lirc, 'Hauppauge6400', lgtv.mutescreen, 'Power2', denon)
         self.addRepeatableFilter(lirc, 'AcerP1165.Zoom', lgtv.mutescreen, 'Power2', denon)
+        self.addFilter(lirc, 'Receiver12V.6', lgtv.mutescreen, 'Power2', denon)
         self.addFilter(lirc, 'Receiver12V.2', lgtv.send, 'input:HDMI1')
         self.addFilter(lirc, 'Receiver12V.3', lgtv.send, 'input:HDMI2')
         self.addFilter(lirc, 'Receiver12V.4', lgtv.send, 'input:Component')
         self.addFilter(lirc, 'Receiver12V.5', lgtv.send, 'input:DTV')
+
+        self.addFilter(lirc, 'Receiver12V.6', gembird.poweron, 3) # outlet 3 is the DVD player
+        self.addFilter(lirc, 'Receiver12V.7', gembird.poweroff, 3)
 
         self.addRepeatableFilter(lirc, 'AcerP1165.Zoom', self.desktop, denon, vdr)
         self.addRepeatableFilter(lirc, 'AcerP1165.Source', lgtv.aspect, ('scan', '4:3', '14:9'))
