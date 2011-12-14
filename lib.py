@@ -158,6 +158,10 @@ class Message(object):
         """the human readable command"""
         return self.command()
 
+    def answerMatches(self, answer):
+        """does the answer from the device match this message?"""
+        return self.humanCommand() == answer.humanCommand()
+
     def __str__(self):
         """use the human readable form for logging"""
         result = self.humanCommand()
@@ -503,7 +507,7 @@ class Serializer(object):
             LOGGER.debug('READ from %s: %s' % (self.name(), repr(data)))
         msg = self.message(encoded=data)
         isAnswer = self.tasks.running and \
-            self.tasks.running.message.humanCommand() == msg.humanCommand()
+            self.tasks.running.message.answerMatches(msg)
         if isAnswer:
             self.tasks.gotAnswer(msg)
         if not isAnswer or self.answersAsEvents:
