@@ -19,7 +19,9 @@ along with this program if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """
 
-from lib import Message, Serializer
+import datetime
+
+from lib import Message, Serializer, elapsedSince
 from twisted.protocols.basic import LineOnlyReceiver
 from twisted.internet import reactor
 from twisted.internet.defer import succeed
@@ -55,6 +57,15 @@ class DenonMessage(Message):
         else:
             return self._encoded[2:] if self._encoded else ''
 
+    def answerMatches(self, answer):
+        """does the answer match this message?"""
+        if self.encoded.startswith('PSMODE:CINEMA'):
+            return answer.encoded.startswith('MS') and answer.encoded.endswith('C')
+        elif self.encoded.startswith('PSMODE:MUSIC'):
+            return answer.encoded.startswith('MS') and answer.encoded.endswith('M')
+        else:
+            return Message.answerMatches(self, answer)
+
 class Denon(LineOnlyReceiver, Serializer):
     """talk to a Denon AVR 2805 or similar"""
     delimiter = '\r'
@@ -67,6 +78,8 @@ class Denon(LineOnlyReceiver, Serializer):
         # never close because the Denon sends events
         # by its own if it is operated by other means (IR, front knobs)
         self.delays = {'PW..': 1.5, '..PW': 0.02}
+        self.surroundIdx = 0
+        self.lastSurroundTime = None
         Serializer.__init__(self, hal)
         self.__port = SerialPort(self, device, reactor)
 
@@ -164,3 +177,37 @@ class Denon(LineOnlyReceiver, Serializer):
                 newMV = '20'
             return self.push('MV%s' % newMV)
         return self.ask('PW').addCallback(_mute1)
+
+    def surround(self, dummyEvent, osdCatEnabled, cycle):
+        """cycle surround things between our preferred values"""
+        commands = cycle[self.surroundIdx]
+        onlyShowStatus = osdCatEnabled and self.lastSurroundTime is None or elapsedSince(self.lastSurroundTime) > 10
+        self.lastSurroundTime = datetime.datetime.now()
+        if onlyShowStatus:
+            return self.ask('MS')
+        self.surroundIdx += 1
+        if self.surroundIdx == len(cycle):
+            self.surroundIdx = 0
+        if not isinstance(commands, list):
+            commands = list([commands])
+        def gotStatus(answerMsg):
+            """got current status"""
+            result = succeed(None)
+            def gotChange(answerMsg):
+                """check again after each command"""
+                answer = answerMsg.decoded
+                for command in commands:
+                    if command == answer:
+                        continue
+                    if command == 'MSDTS NEO:6' and answer.startswith('MSDOLBY D'):
+                        continue
+                    if command == 'MSDOLBY PL2' and answer.startswith('MSDOLBY'):
+                        continue
+                    if command == 'PSMODE:CINEMA' and answer.endswith('C'):
+                        continue
+                    if command == 'PSMODE:MUSIC' and answer.endswith('M'):
+                        continue
+                    result.addCallback(self.push, command).addCallback(gotChange)
+                    return
+            return gotChange(answerMsg)
+        return self.ask('MS').addCallback(gotStatus)

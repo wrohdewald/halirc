@@ -128,7 +128,7 @@ class MyHal(Hal):
         else:
             return succeed(None)
 
-    def desktop(self, dummyEvent, denon, vdr):
+    def desktop(self, dummyEvent, vdr):
         """toggle between desktop mode and vdr-sxfe"""
         if self.desktopActive():
             self.osdCatEnabled = False
@@ -187,6 +187,22 @@ class MyHal(Hal):
 
         self.addRepeatableFilter(lirc, 'AcerP1165.Zoom', self.desktop, denon, vdr)
         self.addRepeatableFilter(lirc, 'AcerP1165.Source', lgtv.aspect, ('scan', '4:3', '14:9'))
+        self.addRepeatableFilter(lirc, 'AcerP1165.Freeze', denon.surround, self.osdCatEnabled,
+            # depending on the source encoding, the actual setting may not
+            # always be what this list says
+            (
+              ('PSMODE:CINEMA'),
+              ('PSMODE:MUSIC'),
+              ('MS5CH STEREO'),
+              ('MSCLASSIC CONCERT'),
+              ('MSPURE DIRECT'),
+              ('MSWIDE SCREEN'),
+              ('MSSUPER STADIUM'),
+              ('MSROCK ARENA'),
+              ('MSJAZZ CLUB'),
+              ('MSMONO MOVIE'),
+              ('MSDTS NEO:6')
+            ))
 
         MorningAction(self, vdr, denon, lgtv)
 

@@ -23,7 +23,7 @@ import os
 from twisted.internet import reactor
 from twisted.internet.protocol import ProcessProtocol
 
-from lib import LOGGER, OPTIONS, Message, Serializer
+from lib import LOGGER, Message, Serializer
 
 class GembirdProtocol(ProcessProtocol):
     # pylint: disable=W0232
