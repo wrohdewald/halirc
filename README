@@ -22,10 +22,11 @@ if you can show messages via an Xserver, you
 can install xosd and show OSD messages.
 For me, the nvidia vdpau driver segfaults
 if doing this while HD material is shown
-with vdr and libxineoutput.
+with vdr and libxineoutput. This is with
+master branch from git://projects.vdr-developer.org/xine-lib.git
+With the df-osd-handling+alter-vdpau-h264-decoder
+branch, this works fine.
 
-if you want to control the Gembird USB controlled
-power outlet, please install sispmctl.
 
 Usage
 =====
