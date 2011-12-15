@@ -189,7 +189,7 @@ class MyHal(Hal):
         self.addFilter(lirc, 'Receiver12V.6', gembird.poweron, 3) # outlet 3 is the DVD player
         self.addFilter(lirc, 'Receiver12V.7', gembird.poweroff, 3)
 
-        self.addRepeatableFilter(lirc, 'AcerP1165.Zoom', self.desktop, denon, vdr)
+        self.addRepeatableFilter(lirc, 'AcerP1165.Zoom', self.desktop, vdr)
         self.addRepeatableFilter(lirc, 'AcerP1165.Source', lgtv.aspect, ('scan', '4:3', '14:9'))
         self.addRepeatableFilter(lirc, 'AcerP1165.Freeze', denon.surround, self.osdCatEnabled,
             # depending on the source encoding, the actual setting may not
