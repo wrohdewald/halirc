@@ -130,6 +130,7 @@ class MyHal(Hal):
 
     def desktop(self, dummyEvent, vdr):
         """toggle between desktop mode and vdr-sxfe"""
+        os.system("chvt 7")
         if self.desktopActive():
             self.osdCatEnabled = True
             os.remove(self.sxfeWatchFile)
