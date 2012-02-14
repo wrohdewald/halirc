@@ -57,7 +57,7 @@ class LGTVMessage(Message):
         values['aspect']['%02X' % (zoom + 15)] = 'cinema%d' % zoom
 
     for volume in range(0, 64):
-        values['volume']['%02X' % volume] = str(volume)
+        values['volume']['%02x' % volume] = str(volume)
 
     def __init__(self, decoded=None, encoded=None):
         self.setID = '01'
