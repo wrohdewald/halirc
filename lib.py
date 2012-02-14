@@ -194,6 +194,7 @@ class Filter(object):
         mayRepeat      Default is False. If True, the filter will not trigger
                        if it is the last previously triggered filter
     """
+    # TODO: we should have one queue per device
     running = None
     queued = []
     previousExecuted = None
@@ -247,13 +248,21 @@ class Filter(object):
             fltr = Filter.running = Filter.queued.pop(0)
             if 'f' in OPTIONS.debug:
                 LOGGER.debug('ACTION start:%s' % str(fltr))
-            return fltr.action(fltr.event, *fltr.args, **fltr.kwargs).addCallback(fltr.executed)
+            return fltr.action(fltr.event, *fltr.args, **fltr.kwargs).addCallback(fltr.executed).addErrback(fltr.notExecuted)
 
     def executed(self, dummyResult):
         """now the filter has finished. TODO: error path"""
         if 'f' in OPTIONS.debug:
             LOGGER.debug('ACTION done :%s ' % self)
         Filter.running = None
+        self.run()
+
+    def notExecuted(self, result):
+        """now the filter has finished. TODO: error path"""
+        if 'f' in OPTIONS.debug:
+            LOGGER.debug('ACTION %s had error :%s' % (self, str(result)))
+        Filter.running = None
+        Filter.queued = []
         self.run()
 
     def __str__(self):
@@ -387,6 +396,8 @@ class Request(Deferred):
                 self.retries += 1
                 return self.send()
             else:
+                Filter.running = None
+                Filter.queued = []
                 self.errback(Exception('request timed out: %s' % self))
 
     def __str__(self):
