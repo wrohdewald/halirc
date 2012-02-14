@@ -558,7 +558,7 @@ class Serializer(object):
         _, msg = self.args2message(*args)
         def got(result):
             """now we know the current value"""
-            if result.value() != msg.value():
+            if not result or result.value() != msg.value():
                 return self.push(msg)
             else:
                 return succeed(None)
