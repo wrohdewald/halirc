@@ -42,8 +42,8 @@ class MorningAction(object):
         self.silencer = '/home/wr/ausschlafen'
         workdays = [0, 1, 2, 3, 4]
 
-        hal.addTimer(self.start, hour=3, minute=58, weekday=workdays)
-        hal.addTimer(self.changeVolume, hour=4, minute=21, weekday=workdays)
+        hal.addTimer(self.start, hour=3, minute=56, weekday=workdays)
+        hal.addTimer(self.changeVolume, hour=4, minute=20, weekday=workdays)
         hal.addTimer(self.end, hour=4, minute=40, weekday=workdays)
 
     def wanted(self):
