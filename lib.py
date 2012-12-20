@@ -391,7 +391,10 @@ class Request(Deferred):
             if 'p' in OPTIONS.debug:
                 LOGGER.debug('WRITE to %s: %s' % (self.protocol.name(), repr(data)))
             return self.protocol.write(data)
-        return self.protocol.open().addCallback(self.__delaySending).addCallback(send1)
+        def notOpened(result):
+            """something went wrong"""
+            print 'cannot open transport', result
+        return self.protocol.open().addCallback(self.__delaySending).addCallback(send1).addErrback(notOpened)
 
     def timedout(self):
         """do callback(None) and log warning"""

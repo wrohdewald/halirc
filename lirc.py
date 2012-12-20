@@ -134,8 +134,6 @@ class Lirc(Serializer):
         self.protocol = None
         self.open()
 
-    def noLirc(result):
-        print "got no connection to lirc: %s" % result
     def open(self):
         """open the connection to the lircd socket"""
         def gotProtocol(result):
@@ -143,10 +141,13 @@ class Lirc(Serializer):
             self.protocol = result
             self.protocol.wrapper = self
             print 'got lirc protocol'
+        def gotNoProtocol(result):
+            """something went wrong"""
+            print "got no connection to lirc: %s" % result
         point = UNIXClientEndpoint(reactor, self.irwSocket, timeout=2)
         factory = ClientFactory()
         factory.protocol = LircProtocol
-        point.connect(factory).addCallback(gotProtocol).addErrback(self.noLirc)
+        point.connect(factory).addCallback(gotProtocol).addErrback(gotNoProtocol)
 
     def write(self, data):
         """write to lirc not yet implemented"""
