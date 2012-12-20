@@ -67,7 +67,7 @@ class GembirdMessage(Message):
         if encoded is not None:
             if encoded == '': # timeout
                 return
-            parts = encoded.split('\n')[1].split() # the firt line says 'accessing...'
+            parts = encoded.split('\n')[1].split() # the first line says 'accessing...'
             self.outlet = parts[-2][0]
             assert self.outlet in '1234', encoded
             assert parts[-1] in ('on', 'off'), encoded
