@@ -32,7 +32,7 @@ from lib import Serializer, Message, OPTIONS, LOGGER, elapsedSince
 class VdrMessage(Message):
     """holds content of a message from or to Vdr"""
     def __init__(self, decoded=None, encoded=None):
-        """for the Denon we only use the machine form, its
+        """for the VDR we only use the machine form, its
         readability is acceptable"""
         Message.__init__(self, decoded, encoded)
 
