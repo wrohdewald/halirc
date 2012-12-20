@@ -71,13 +71,13 @@ class Denon(LineOnlyReceiver, Serializer):
     delimiter = '\r'
     message = DenonMessage
     poweronCommands = ('SI')
+    delays = {'PW..': 1.5, '..PW': 0.02}
 
     def __init__(self, hal, device='/dev/denon'):
         """default device is /dev/denon"""
         self.mutedVolume = None
         # never close because the Denon sends events
         # by its own if it is operated by other means (IR, front knobs)
-        self.delays = {'PW..': 1.5, '..PW': 0.02}
         self.surroundIdx = 0
         self.lastSurroundTime = None
         Serializer.__init__(self, hal)
@@ -96,8 +96,8 @@ class Denon(LineOnlyReceiver, Serializer):
                 result = 0.05
             elif not question1:
                 for key in (cmd1 + cmd2, cmd1 + '..', '..' + cmd2):
-                    if key in self.delays:
-                        result = max(result, self.delays[key])
+                    if key in Denon.delays:
+                        result = max(result, Denon.delays[key])
         return result
 
     def lineReceived(self, data):
