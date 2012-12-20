@@ -32,6 +32,7 @@ from gembird import Gembird
 from lgtv import LGTV
 from denon import Denon
 from vdr import Vdr
+from pioneer import Pioneer
 
 class MorningAction(object):
     """very custom..."""
@@ -151,6 +152,7 @@ class MyHal(Hal):
         and from halirc. AcerP1165, Hauppauge6400 and Receiver12V are just some
         remote controls I do not need otherwise.
         """
+        # pylint: disable=R0915
         lirc = Lirc(self)
         denon = Denon(self)
         denon.answersAsEvents = True
@@ -158,6 +160,7 @@ class MyHal(Hal):
         lgtv = LGTV(self)
         osdcat = OsdCat()
         gembird = Gembird(self)
+        pioneer = Pioneer(self, host='blueray')
         for cmd in ('MV', 'SI', 'MS', 'TF', 'TP'):
             self.addRepeatableFilter(denon, cmd, self.gotDenonEvent, osdcat)
         self.addRepeatableFilter(lirc, 'AcerP1165.PgUp', denon.mute)
@@ -187,8 +190,24 @@ class MyHal(Hal):
         self.addFilter(lirc, 'Receiver12V.4', lgtv.send, 'input:Component')
         self.addFilter(lirc, 'Receiver12V.5', lgtv.send, 'input:DTV')
 
-        self.addFilter(lirc, 'Receiver12V.6', gembird.poweron, 3) # outlet 3 is the DVD player
-        self.addFilter(lirc, 'Receiver12V.7', gembird.poweroff, 3)
+#        self.addFilter(lirc, 'Receiver12V.6', gembird.poweron, 3) # outlet 3 is the DVD player
+#        self.addFilter(lirc, 'Receiver12V.7', gembird.poweroff, 3)
+        self.addFilter(lirc, 'Receiver12V.6', pioneer.poweron, gembird=gembird, outlet=3)
+        self.addFilter(lirc, 'Receiver12V.7', pioneer.standby, gembird=gembird, outlet=3)
+
+
+        self.addFilter(lirc, 'XoroDVD.PlayPause', pioneer.send, 'PL')
+        self.addFilter(lirc, 'XoroDVD.Angle', pioneer.send, 'ST')
+        self.addFilter(lirc, 'XoroDVD.Left', pioneer.send, '/A187FFFF/RU')
+        self.addFilter(lirc, 'XoroDVD.Right', pioneer.send, '/A186FFFF/RU')
+        self.addFilter(lirc, 'XoroDVD.Up', pioneer.send, '/A184FFFF/RU')
+        self.addFilter(lirc, 'XoroDVD.Down', pioneer.send, '/A185FFFF/RU')
+        self.addFilter(lirc, 'XoroDVD.Enter', pioneer.send, '/A181AFEF/RU')
+        self.addFilter(lirc, 'XoroDVD.Forward', pioneer.send, 'NF')
+        self.addFilter(lirc, 'XoroDVD.Rewind', pioneer.send, 'NR')
+        self.addFilter(lirc, 'XoroDVD.FastForward', pioneer.send, '/A181AF3D/RU')
+        self.addFilter(lirc, 'XoroDVD.FastRew', pioneer.send, '/A181AF3E/RU')
+
 
         self.addRepeatableFilter(lirc, 'AcerP1165.Zoom', self.desktop, vdr)
         self.addRepeatableFilter(lirc, 'AcerP1165.Source', lgtv.aspect, ('scan', '4:3', '14:9'))
