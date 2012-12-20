@@ -502,7 +502,8 @@ class Serializer(object):
         """the device is always open"""
         return succeed(None)
 
-    def delay(self, dummyPrevious, dummyThis): # pylint: disable=R0201
+    @staticmethod
+    def delay(dummyPrevious, dummyThis):
         """compute necessary delay before we can execute request"""
         return 0
 

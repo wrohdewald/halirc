@@ -83,7 +83,8 @@ class Denon(LineOnlyReceiver, Serializer):
         Serializer.__init__(self, hal)
         self.__port = SerialPort(self, device, reactor)
 
-    def delay(self, previous, this):
+    @staticmethod
+    def delay(previous, this):
         """do we need to wait before sending this command?"""
         cmd1 = previous.message.humanCommand() if previous else ''
         cmd2 = this.message.humanCommand()

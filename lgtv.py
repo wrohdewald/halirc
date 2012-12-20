@@ -127,7 +127,8 @@ class LGTV(LineOnlyReceiver, Serializer):
         self.tvTimeout = 300
         self.__port = SerialPort(self, device, reactor)
 
-    def delay(self, previous, dummyThis):
+    @staticmethod
+    def delay(previous, dummyThis):
         """compute delay between two requests. If we send commands
         while the LG is powering on or off, it might ignore them
         or return garbage or become unresponsive to further commands"""

@@ -124,7 +124,8 @@ class Gembird(Serializer):
         Serializer.__init__(self, hal)
         self.device = device
 
-    def delay(self, previous, dummyThis):
+    @staticmethod
+    def delay(previous, dummyThis):
         """compute necessary delay before we can execute request"""
         if not previous.message.isQuestion:
             # the gembird needs this time for switching, otherwise it returns an error
