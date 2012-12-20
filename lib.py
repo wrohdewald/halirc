@@ -230,9 +230,11 @@ class Filter(object):
     def execute(self, event):
         """execute this filter action"""
         if not self.mayRepeat and id(self) == id(Filter.previousExecuted):
-            if 'f' in OPTIONS.debug:
-                LOGGER.debug('ACTION ignore:%s' % str(self))
-            return
+            repeatMaxTime = datetime.timedelta(seconds=0.5)
+            if event.when - Filter.previousExecuted.event.when < repeatMaxTime:
+                if 'f' in OPTIONS.debug:
+                    LOGGER.debug('ACTION ignore:%s' % str(self))
+                return
         if 'f' in OPTIONS.debug:
             LOGGER.debug('ACTION queue:%s' % str(self))
         self.event = event
