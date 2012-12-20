@@ -19,15 +19,13 @@ along with this program if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """
 
-from twisted.protocols.basic import LineOnlyReceiver
-from twisted.conch.telnet import Telnet
 from twisted.internet.endpoints import TCP4ClientEndpoint
 from twisted.internet.defer import Deferred, succeed
 from twisted.internet import reactor
 from twisted.internet.protocol import ClientFactory
 
 
-from lib import Serializer, Message, OPTIONS, LOGGER, elapsedSince
+from lib import Serializer, SimpleTelnet, Message, OPTIONS, LOGGER, elapsedSince
 
 class VdrMessage(Message):
     """holds content of a message from or to Vdr"""
@@ -49,21 +47,14 @@ class VdrMessage(Message):
         # TODO: subcommands
         return self._encoded[4:] if self._encoded else ''
 
-class VdrProtocol(LineOnlyReceiver, Telnet):
+class VdrProtocol(SimpleTelnet):
     """talk to vdr"""
     # pylint: disable=R0904
     # pylint finds too many public methods
-    delimiter = '\r\n'
 
     def __init__(self):
         self.wrapper = None
-        Telnet.__init__(self)
-
-    def disableRemote(self, option):
-        """disable a remote option"""
-
-    def disableLocal(self, option):
-        """disable a local option"""
+        SimpleTelnet.__init__(self)
 
     def lineReceived(self, line):
         """we got a full line from vdr"""

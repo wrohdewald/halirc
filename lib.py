@@ -25,6 +25,8 @@ from optparse import OptionParser
 from twisted.internet import reactor
 from twisted.internet.protocol import ProcessProtocol
 from twisted.internet.defer import Deferred, succeed
+from twisted.protocols.basic import LineOnlyReceiver
+from twisted.conch.telnet import Telnet
 
 # this ugly code ensures that pylint gives no errors about
 # undefined attributes:
@@ -633,6 +635,25 @@ class OsdCat(object):
         self.__osdcat.transport.write(data + '\n')
         self.__lastSent = datetime.datetime.now()
         return succeed(None)
+
+class SimpleTelnet(LineOnlyReceiver, Telnet):
+    """just what we normally need"""
+    # pylint: disable=R0904
+    # pylint finds too many public methods
+
+    delimiter = '\r\n'
+
+    def __init__(self):
+        Telnet.__init__(self)
+
+    def lineReceived(self, line):
+        """must be overridden"""
+
+    def disableRemote(self, option):
+        """disable a remote option"""
+
+    def disableLocal(self, option):
+        """disable a local option"""
 
 def main(hal):
     """it should not be necessary to ever adapt this"""
