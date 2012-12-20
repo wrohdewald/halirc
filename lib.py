@@ -254,7 +254,8 @@ class Filter(object):
             fltr = Filter.running = Filter.queued.pop(0)
             if 'f' in OPTIONS.debug:
                 LOGGER.debug('ACTION start:%s' % str(fltr))
-            return fltr.action(fltr.event, *fltr.args, **fltr.kwargs).addCallback(fltr.executed).addErrback(fltr.notExecuted)
+            return fltr.action(fltr.event, *fltr.args, **fltr.kwargs).addCallback(
+                fltr.executed).addErrback(fltr.notExecuted)
 
     def executed(self, dummyResult):
         """now the filter has finished. TODO: error path"""
