@@ -206,6 +206,7 @@ class Filter(object):
 
     def __init__(self, parts, action, *args, **kwargs):
         self.action = action
+        assert action
         self.args = args
         self.kwargs = kwargs
         if not isinstance(parts, list):
@@ -253,10 +254,12 @@ class Filter(object):
             return
         if Filter.queued:
             fltr = Filter.running = Filter.queued.pop(0)
+            assert fltr.action
             if 'f' in OPTIONS.debug:
                 LOGGER.debug('ACTION start:%s' % str(fltr))
-            return fltr.action(fltr.event, *fltr.args, **fltr.kwargs).addCallback(
-                fltr.executed).addErrback(fltr.notExecuted)
+            act = fltr.action(fltr.event, *fltr.args, **fltr.kwargs)
+            assert act, 'Filter %s returns None' % str(fltr)
+            return act.addCallback(fltr.executed).addErrback(fltr.notExecuted)
 
     def executed(self, dummyResult):
         """now the filter has finished. TODO: error path"""
