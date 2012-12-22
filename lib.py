@@ -443,7 +443,7 @@ class TaskQueue:
         request.previous = self.allRequests[-1] if self.allRequests else None
         self.queued.append(request)
         if 'c' in OPTIONS.debug:
-            LOGGER.debug('queued: %s' % request)
+            LOGGER.debug('queued for %s: %s' % (self.device, request))
         self.allRequests = self.allRequests[-20:]
         self.allRequests.append(request)
         request.addErrback(self.failed)
