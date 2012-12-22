@@ -24,7 +24,7 @@ from optparse import OptionParser
 
 from twisted.internet import reactor
 from twisted.internet.protocol import ProcessProtocol
-from twisted.internet.defer import Deferred, succeed
+from twisted.internet.defer import Deferred, succeed, fail
 from twisted.protocols.basic import LineOnlyReceiver
 from twisted.conch.telnet import Telnet
 
@@ -395,8 +395,9 @@ class Request(Deferred):
             return self.protocol.write(data)
         def notOpened(result):
             """something went wrong"""
-            print 'cannot open transport', result
-        return self.protocol.open().addCallback(self.__delaySending).addCallback(send1).addErrback(notOpened)
+            LOGGER.error('cannot open transport: %s', result.getErrorMessage())
+            fail(result)
+        return self.protocol.open().addErrback(notOpened).addCallback(self.__delaySending).addCallback(send1)
 
     def timedout(self):
         """do callback(None) and log warning"""
