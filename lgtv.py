@@ -121,8 +121,8 @@ class LGTV(LineOnlyReceiver, Serializer):
     message = LGTVMessage
     poweronCommands = ('input')
 
-    def __init__(self, hal, device='/dev/LGPlasma'):
-        Serializer.__init__(self, hal)
+    def __init__(self, hal, device='/dev/LGPlasma', outlet=None):
+        Serializer.__init__(self, hal, outlet)
         self.videoMuted = None
         self.tvTimeout = 300
         self.__port = SerialPort(self, device, reactor)

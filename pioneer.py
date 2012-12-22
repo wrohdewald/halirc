@@ -71,8 +71,8 @@ class Pioneer(Serializer):
     eol = '\r\n'
     message = PioneerMessage
 
-    def __init__(self, hal, host, port=8102):
-        Serializer.__init__(self, hal)
+    def __init__(self, hal, host, port=8102, outlet=None):
+        Serializer.__init__(self, hal, outlet)
         self.host = host
         self.port = port
         self.protocol = None

@@ -492,6 +492,8 @@ class Serializer(object):
                         volume, the global event handler will display the new
                         volume on the TV. With this flag set, that also
                         happens for volume changes done by halirc.
+
+       outlet: None or a power outlet onto which this device is connected
     """
     eol = '\r'
     message = Message
@@ -501,8 +503,9 @@ class Serializer(object):
     __instances = []
     poweronCommands = []
 
-    def __init__(self, hal):
+    def __init__(self, hal, outlet=None):
         self.hal = hal
+        self.outlet = outlet
         self.tasks = TaskQueue()
         self.answersAsEvents = False
         self.__instances.append(weakref.ref(self))

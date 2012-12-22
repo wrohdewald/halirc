@@ -157,7 +157,7 @@ class MyHal(Hal):
         lgtv = LGTV(self)
         osdcat = OsdCat()
         gembird = Gembird(self)
-        pioneer = Pioneer(self, host='blueray')
+        pioneer = Pioneer(self, host='blueray', outlet=gembird[3])
         for cmd in ('MV', 'SI', 'MS', 'TF', 'TP'):
             self.addRepeatableFilter(denon, cmd, self.gotDenonEvent, osdcat)
         self.addRepeatableFilter(lirc, 'AcerP1165.PgUp', denon.mute)

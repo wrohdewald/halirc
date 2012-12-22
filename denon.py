@@ -73,14 +73,14 @@ class Denon(LineOnlyReceiver, Serializer):
     poweronCommands = ('SI')
     delays = {'PW..': 1.5, '..PW': 0.02}
 
-    def __init__(self, hal, device='/dev/denon'):
+    def __init__(self, hal, device='/dev/denon', outlet=None):
         """default device is /dev/denon"""
         self.mutedVolume = None
         # never close because the Denon sends events
         # by its own if it is operated by other means (IR, front knobs)
         self.surroundIdx = 0
         self.lastSurroundTime = None
-        Serializer.__init__(self, hal)
+        Serializer.__init__(self, hal, outlet)
         self.__port = SerialPort(self, device, reactor)
 
     @staticmethod
