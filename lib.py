@@ -199,7 +199,6 @@ class Filter(object):
         mayRepeat      Default is False. If True, the filter will not trigger
                        if it is the last previously triggered filter
     """
-    # TODO: we should have one queue per device
     running = None
     queued = []
     previousExecuted = None
@@ -433,9 +432,6 @@ class TaskQueue:
     the second one will generate a task before the Denon sends
     back the state change for the first one, so we send a second
     poweron when it is not really needed at all."""
-
-    # TODO: use chainDeferred. When all requests are callbacked,
-    # remove them - no memleak wanted
 
     def __init__(self):
         self.running = None
