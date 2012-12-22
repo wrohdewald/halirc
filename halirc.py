@@ -80,13 +80,10 @@ class MorningAction(object):
         elif os.path.exists(self.silencer):
             os.remove(self.silencer)
 
-def allOff(dummyEvent, denon, lgtv, gembirdOutlet):
+def allOff(dummyEvent, devices):
     """as the name says. Will be called if the Denon is powered
     off - the LG does not make sense without Denon"""
-    return DeferredList([
-        denon.standby(),
-        lgtv.standby(),
-        gembirdOutlet.standby()])
+    return DeferredList([x.standby() for x in devices])
 
 class MyHal(Hal):
     """an example for user definitions"""
@@ -176,7 +173,7 @@ class MyHal(Hal):
         self.addFilter(lirc, 'AcerP1165.8', denon.send, 'SICDR.TAPE')
         self.addFilter(lirc, 'AcerP1165.9', denon.send, 'SITV')
         self.addFilter(lirc, 'AcerP1165.Left', denon.poweron)
-        self.addFilter(lirc, 'AcerP1165.Right', allOff, denon, lgtv, gembird[3])
+        self.addFilter(lirc, 'AcerP1165.Right', allOff, [denon, lgtv, gembird[3]])
         self.addRepeatableFilter(lirc, 'AcerP1165.Down', denon.volume, 'DOWN')
         self.addRepeatableFilter(lirc, 'AcerP1165.Up', denon.volume, 'UP')
 
