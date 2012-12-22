@@ -104,12 +104,12 @@ class Denon(LineOnlyReceiver, Serializer):
     def lineReceived(self, data):
         Serializer.defaultInputHandler(self, data)
 
-    def standby(self, *dummyArgs):
+    def _standby(self, *dummyArgs):
         """switch off"""
         self.mutedVolume = None
         return self.send('PWSTANDBY')
 
-    def poweron(self, *dummyArgs):
+    def _poweron(self, *dummyArgs):
         """switch on"""
         return self.send('PWON')
 

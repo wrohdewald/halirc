@@ -150,11 +150,11 @@ class LGTV(LineOnlyReceiver, Serializer):
            self.send, 'aspect:scan').addCallback(
            self.send, 'mutescreen:off')
 
-    def poweron(self, *dummyArgs):
+    def _poweron(self, *dummyArgs):
         """power on the LGTV"""
         return self.send('power:on')
 
-    def standby(self, *dummyArgs):
+    def _standby(self, *dummyArgs):
         """power off the LGTV"""
         return self.send('power:off')
 

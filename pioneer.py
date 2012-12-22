@@ -110,20 +110,13 @@ class Pioneer(Serializer):
         _, msg = self.args2message(*args)
         return self.push(msg)
 
-    def poweron(self, *dummyArgs, **kwargs):
-        """power on the Pioneer. Please pass gembird= and outlet="""
-# TODO: erst mit ?P fragen. Wenn kein connect: Gembird. Wenn kein Pxx, poweron
-        def gembirdOn(dummyResult):
-            """now we can poweron"""
-            reactor.callLater(12, self.send, 'PN')
-        return kwargs['gembirdOutlet'].poweron().addCallback(gembirdOn)
+    def _poweron(self, *dummyArgs):
+        """power on the Pioneer"""
+        return self.send('PN')
 
-    def standby(self, *dummyArgs, **kwargs):
+    def _standby(self, *dummyArgs):
         """standby the Pioneer"""
-        def pioneerOff(dummyResult):
-            """now switch off the outlet"""
-            reactor.callLater(1, kwargs['gembirdOutlet'].poweroff)
-        return self.send('PF').addCallback(pioneerOff)
+        return self.send('PF')
 
     def play(self, *dummyArgs):
         """if tray is open, close it first"""

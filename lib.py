@@ -475,6 +475,12 @@ class TaskQueue:
         running.callback(msg)
         self.run()
 
+def sleep(secs):
+    """returns a Deferred which fires after secs"""
+    deferred = Deferred()
+    reactor.callLater(secs, deferred.callback, None)
+    return deferred
+
 class Serializer(object):
     """
        a mixin class, presenting a unified interface
@@ -510,6 +516,8 @@ class Serializer(object):
         self.tasks = TaskQueue(self)
         self.answersAsEvents = False
         self.__instances.append(weakref.ref(self))
+        self.bootDelay = 1     # time needed for cold boot
+        self.shutdownDelay = 1 # time needed for shutdown into standby
 
     def open(self): # pylint: disable=R0201
         """the device is always open"""
@@ -567,9 +575,33 @@ class Serializer(object):
         msg = self.message(msg.humanCommand())
         return self.push(msg)
 
-    def poweron(self, *dummyArgs):
+    def poweron(self, *args):
         """power on this device"""
-        pass
+        def hasPower(*dummyArgs):
+            """device should have power"""
+            # pylint: disable=W0142
+            return sleep(self.bootDelay).addCallback(self._poweron, *args)
+        if self.outlet:
+            return self.outlet.poweron(*args).addBoth(hasPower)
+        else:
+            return self._poweron(*args)
+
+    def standby(self, *args):
+        """put into standby mode"""
+        def isOff(*dummyArgs):
+            """device should be shutdown"""
+            # pylint: disable=W0142
+            return sleep(self.shutdownDelay).addCallback(self.outlet.standby, *args)
+        result = self._standby(*args)
+        if self.outlet:
+            result.addBoth(isOff)
+        return result
+
+    def _poweron(self, *dummyArgs):
+        """to be overridden by the specific device"""
+
+    def _standby(self, *dummyArgs):
+        """to be overridden by the specific device"""
 
     def reallySend(self, *args):
         """send command without checking"""

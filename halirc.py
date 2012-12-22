@@ -173,12 +173,12 @@ class MyHal(Hal):
         self.addFilter(lirc, 'AcerP1165.8', denon.send, 'SICDR.TAPE')
         self.addFilter(lirc, 'AcerP1165.9', denon.send, 'SITV')
         self.addFilter(lirc, 'AcerP1165.Left', denon.poweron)
-        self.addFilter(lirc, 'AcerP1165.Right', allOff, [denon, lgtv, gembird[3]])
+        self.addFilter(lirc, 'AcerP1165.Right', allOff, [denon, lgtv, pioneer])
         self.addRepeatableFilter(lirc, 'AcerP1165.Down', denon.volume, 'DOWN')
         self.addRepeatableFilter(lirc, 'AcerP1165.Up', denon.volume, 'UP')
 
         self.addFilter(lirc, 'Receiver12V.0', lgtv.standby)
-        self.addFilter(lirc, 'Receiver12V.1', lgtv.send, 'power:on')
+        self.addFilter(lirc, 'Receiver12V.1', lgtv.poweron)
         self.addRepeatableFilter(lirc, 'Hauppauge6400', lgtv.mutescreen, 'Power2', denon)
         self.addRepeatableFilter(lirc, 'AcerP1165.Zoom', lgtv.mutescreen, 'Power2', denon)
         self.addFilter(lirc, 'Receiver12V.6', lgtv.mutescreen, 'Power2', denon)
@@ -187,8 +187,8 @@ class MyHal(Hal):
         self.addFilter(lirc, 'Receiver12V.4', lgtv.send, 'input:Component')
         self.addFilter(lirc, 'Receiver12V.5', lgtv.send, 'input:DTV')
 
-        self.addFilter(lirc, 'Receiver12V.6', pioneer.poweron, gembirdOutlet=gembird[3])
-        self.addFilter(lirc, 'Receiver12V.7', pioneer.standby, gembirdOutlet=gembird[3])
+        self.addFilter(lirc, 'Receiver12V.6', pioneer.poweron)
+        self.addFilter(lirc, 'Receiver12V.7', pioneer.standby)
         self.addFilter(lirc, 'XoroDVD.PlayPause', pioneer.play)
         self.addFilter(lirc, 'XoroDVD.Angle', pioneer.send, 'ST')
         self.addFilter(lirc, 'XoroDVD.Left', pioneer.send, '/A187FFFF/RU')
@@ -200,7 +200,7 @@ class MyHal(Hal):
         self.addFilter(lirc, 'XoroDVD.Rewind', pioneer.send, 'NR')
         self.addFilter(lirc, 'XoroDVD.FastForward', pioneer.send, '/A181AF3D/RU')
         self.addFilter(lirc, 'XoroDVD.FastRew', pioneer.send, '/A181AF3E/RU')
-
+        self.addFilter(lirc, 'XoroDVD.Eject', pioneer.send, 'OP')
 
         self.addRepeatableFilter(lirc, 'AcerP1165.Zoom', self.desktop, vdr)
         self.addRepeatableFilter(lirc, 'AcerP1165.Source', lgtv.aspect, ('scan', '4:3', '14:9'))
