@@ -102,6 +102,10 @@ class Pioneer(Serializer):
             return 5
 
     def write(self, data):
+        if not self.protocol:
+            raise Exception('pioneer.write: have no protocol')
+        if not self.protocol.transport:
+            raise Exception('pioneer.write: have no protocol.transport')
         self.protocol.transport.write(data)
 
     def send(self, *args):
