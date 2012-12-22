@@ -128,9 +128,9 @@ class GembirdOutlet:
         """switch power on"""
         return self.gembird.poweron(self.outlet)
 
-    def poweroff(self, *dummyArgs):
+    def standby(self, *dummyArgs):
         """switch power off"""
-        return self.gembird.poweroff(self.outlet)
+        return self.gembird.standby(self.outlet)
 
 class Gembird(Serializer):
     """use the external program sispmctl for controlling
@@ -160,7 +160,7 @@ class Gembird(Serializer):
         """switch power on. last arg is 1 2 3 4"""
         return self.send('outlet%d:on' % args[-1])
 
-    def poweroff(self, *args):
+    def standby(self, *args):
         """switch power off. last arg is 1 2 3 4"""
         return self.send('outlet%d:off' % args[-1])
 

@@ -86,7 +86,7 @@ def allOff(dummyEvent, denon, lgtv, gembirdOutlet):
     return DeferredList([
         denon.standby(),
         lgtv.standby(),
-        gembirdOutlet.poweroff()])
+        gembirdOutlet.standby()])
 
 class MyHal(Hal):
     """an example for user definitions"""
