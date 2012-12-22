@@ -432,7 +432,8 @@ class TaskQueue:
     back the state change for the first one, so we send a second
     poweron when it is not really needed at all."""
 
-    def __init__(self):
+    def __init__(self, device):
+        self.device = device
         self.running = None
         self.queued = []
         self.allRequests = []
@@ -506,7 +507,7 @@ class Serializer(object):
     def __init__(self, hal, outlet=None):
         self.hal = hal
         self.outlet = outlet
-        self.tasks = TaskQueue()
+        self.tasks = TaskQueue(self)
         self.answersAsEvents = False
         self.__instances.append(weakref.ref(self))
 
