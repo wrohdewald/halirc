@@ -84,12 +84,11 @@ class Pioneer(Serializer):
         """open connection if not open"""
         def gotProtocol(result):
             """now we have a a connection, save it"""
-            print 'got pioneer connection'
             self.protocol = result
             self.protocol.wrapper = self
         def gotNoProtocol(result):
             """something went wrong"""
-            print 'got no pioneer connection', result
+            LOGGER.error('Pioneer: %s' % result.getErrorMessage())
         point = TCP4ClientEndpoint(reactor, self.host, self.port)
         factory = ClientFactory()
         factory.protocol = PioneerProtocol
