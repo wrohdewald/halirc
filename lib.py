@@ -155,7 +155,8 @@ class Message(object):
         return property(**locals())
 
     def _setAttributes(self, decoded, encoded):
-        """initialise decoded / encoded. Should be overridden"""
+        """initialise decoded / encoded. Must be overridden
+        if both differ."""
         self._decoded = self._encoded = decoded or encoded
 
     def humanCommand(self):
