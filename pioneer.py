@@ -124,3 +124,15 @@ class Pioneer(Serializer):
             """now switch off the outlet"""
             reactor.callLater(1, kwargs['gembirdOutlet'].poweroff)
         return self.send('PF').addCallback(pioneerOff)
+
+    def play(self, *dummyArgs):
+        """if tray is open, close it first"""
+        def gotStatus(result):
+            """now we have pioneer status"""
+            if not result:
+                return
+            if result.value() == 'P00':
+                return self.send('CO') # I have auto playback defined in player setup
+            else:
+                return self.send('PL')
+        return self.ask('?P').addCallback(gotStatus)

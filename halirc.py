@@ -187,9 +187,9 @@ class MyHal(Hal):
         self.addFilter(lirc, 'Receiver12V.4', lgtv.send, 'input:Component')
         self.addFilter(lirc, 'Receiver12V.5', lgtv.send, 'input:DTV')
 
-        self.addFilter(lirc, 'XoroDVD.PlayPause', pioneer.send, 'PL')
         self.addFilter(lirc, 'Receiver12V.6', pioneer.poweron, gembirdOutlet=gembird[3])
         self.addFilter(lirc, 'Receiver12V.7', pioneer.standby, gembirdOutlet=gembird[3])
+        self.addFilter(lirc, 'XoroDVD.PlayPause', pioneer.play)
         self.addFilter(lirc, 'XoroDVD.Angle', pioneer.send, 'ST')
         self.addFilter(lirc, 'XoroDVD.Left', pioneer.send, '/A187FFFF/RU')
         self.addFilter(lirc, 'XoroDVD.Right', pioneer.send, '/A186FFFF/RU')
