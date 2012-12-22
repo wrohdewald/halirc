@@ -80,13 +80,13 @@ class MorningAction(object):
         elif os.path.exists(self.silencer):
             os.remove(self.silencer)
 
-def allOff(dummyEvent, denon, lgtv, gembird):
+def allOff(dummyEvent, denon, lgtv, gembirdOutlet):
     """as the name says. Will be called if the Denon is powered
     off - the LG does not make sense without Denon"""
     return DeferredList([
         denon.standby(),
         lgtv.standby(),
-        gembird.poweroff(None, 3)]) # outlet 3 is the DVD player
+        gembirdOutlet.poweroff()])
 
 class MyHal(Hal):
     """an example for user definitions"""
@@ -176,7 +176,7 @@ class MyHal(Hal):
         self.addFilter(lirc, 'AcerP1165.8', denon.send, 'SICDR.TAPE')
         self.addFilter(lirc, 'AcerP1165.9', denon.send, 'SITV')
         self.addFilter(lirc, 'AcerP1165.Left', denon.poweron)
-        self.addFilter(lirc, 'AcerP1165.Right', allOff, denon, lgtv, gembird)
+        self.addFilter(lirc, 'AcerP1165.Right', allOff, denon, lgtv, gembird[3])
         self.addRepeatableFilter(lirc, 'AcerP1165.Down', denon.volume, 'DOWN')
         self.addRepeatableFilter(lirc, 'AcerP1165.Up', denon.volume, 'UP')
 
@@ -190,13 +190,9 @@ class MyHal(Hal):
         self.addFilter(lirc, 'Receiver12V.4', lgtv.send, 'input:Component')
         self.addFilter(lirc, 'Receiver12V.5', lgtv.send, 'input:DTV')
 
-#        self.addFilter(lirc, 'Receiver12V.6', gembird.poweron, 3) # outlet 3 is the DVD player
-#        self.addFilter(lirc, 'Receiver12V.7', gembird.poweroff, 3)
-        self.addFilter(lirc, 'Receiver12V.6', pioneer.poweron, gembird=gembird, outlet=3)
-        self.addFilter(lirc, 'Receiver12V.7', pioneer.standby, gembird=gembird, outlet=3)
-
-
         self.addFilter(lirc, 'XoroDVD.PlayPause', pioneer.send, 'PL')
+        self.addFilter(lirc, 'Receiver12V.6', pioneer.poweron, gembirdOutlet=gembird[3])
+        self.addFilter(lirc, 'Receiver12V.7', pioneer.standby, gembirdOutlet=gembird[3])
         self.addFilter(lirc, 'XoroDVD.Angle', pioneer.send, 'ST')
         self.addFilter(lirc, 'XoroDVD.Left', pioneer.send, '/A187FFFF/RU')
         self.addFilter(lirc, 'XoroDVD.Right', pioneer.send, '/A186FFFF/RU')

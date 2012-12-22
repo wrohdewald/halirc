@@ -114,15 +114,39 @@ class GembirdMessage(Message):
             return ''
         return self._encoded.split()[0]
 
+class GembirdOutlet:
+    """we want one object per outlet"""
+    def __init__(self, gembird, outlet):
+        self.gembird = gembird
+        self.outlet = outlet # just in case they are cascaded
+
+    def delay(self, previous, this):
+        """compute necessary delay before we can execute request"""
+        return self.gembird.delay(previous, this)
+
+    def poweron(self, *dummyArgs):
+        """switch power on"""
+        return self.gembird.poweron(self.outlet)
+
+    def poweroff(self, *dummyArgs):
+        """switch power off"""
+        return self.gembird.poweroff(self.outlet)
+
 class Gembird(Serializer):
     """use the external program sispmctl for controlling
     the Gembird USB power outlet"""
 
     message = GembirdMessage
 
-    def __init__(self, hal, device='/dev/steckerleiste'):
+    def __init__(self, hal, device='/dev/steckerleiste', outlets=4):
         Serializer.__init__(self, hal)
         self.device = device
+        self.outlets = list(GembirdOutlet(self, x) for x in range(1, outlets + 1))
+
+    def __getitem__(self, index):
+        """directly index the outlets. Range is 1..x because that is
+        how they are numbered by Gembird"""
+        return self.outlets[index - 1] # but the array is 0..x-1
 
     @staticmethod
     def delay(previous, dummyThis):

@@ -116,11 +116,11 @@ class Pioneer(Serializer):
         def gembirdOn(dummyResult):
             """now we can poweron"""
             reactor.callLater(12, self.send, 'PN')
-        return kwargs['gembird'].poweron(kwargs['outlet']).addCallback(gembirdOn)
+        return kwargs['gembirdOutlet'].poweron().addCallback(gembirdOn)
 
     def standby(self, *dummyArgs, **kwargs):
         """standby the Pioneer"""
         def pioneerOff(dummyResult):
             """now switch off the outlet"""
-            reactor.callLater(1, kwargs['gembird'].poweroff, kwargs['outlet'])
+            reactor.callLater(1, kwargs['gembirdOutlet'].poweroff)
         return self.send('PF').addCallback(pioneerOff)
