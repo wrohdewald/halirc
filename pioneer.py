@@ -33,9 +33,6 @@ class PioneerMessage(Message):
         readability is acceptable"""
         Message.__init__(self, decoded, encoded)
 
-    def _setAttributes(self, decoded, encoded):
-        self._decoded = self._encoded = decoded or encoded
-
     def command(self):
         """the human readable command"""
         return self._encoded if self._encoded else ''
