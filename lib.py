@@ -171,7 +171,7 @@ class Message(object):
         """use the human readable form for logging"""
         result = self.humanCommand()
         if not result:
-            return 'None'
+            return None
         if self.value():
             result += ':%s' % self.value()
         else:
