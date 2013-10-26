@@ -110,8 +110,9 @@ class Pioneer(Serializer):
         _, msg = self.args2message(*args)
         return self.push(msg)
 
-    def _poweron(self, *dummyArgs):
+    def _poweron(self, denon, *args):
         """power on the Pioneer"""
+        print 'denon is:', denon
         return self.send('PN')
 
     def _standby(self, *dummyArgs):

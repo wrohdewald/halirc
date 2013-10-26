@@ -187,7 +187,7 @@ class MyHal(Hal):
         self.addFilter(lirc, 'Receiver12V.4', lgtv.send, 'input:Component')
         self.addFilter(lirc, 'Receiver12V.5', lgtv.send, 'input:DTV')
 
-        self.addFilter(lirc, 'Receiver12V.6', pioneer.poweron)
+        self.addFilter(lirc, 'Receiver12V.6', pioneer.poweron, denon)
         self.addFilter(lirc, 'Receiver12V.7', pioneer.standby)
         self.addFilter(lirc, 'XoroDVD.PlayPause', pioneer.play)
         self.addFilter(lirc, 'XoroDVD.Angle', pioneer.send, 'ST')
