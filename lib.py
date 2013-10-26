@@ -80,7 +80,7 @@ def initLogger():
         # to reduce log file output by always writing exactly the same msg
         formatter = logging.Formatter("%(name)s: %(levelname)s %(message)s")
     else:
-        formatter = logging.Formatter("%(relativeCreated)d %(name)s: %(levelname)s %(message)s")
+        formatter = logging.Formatter("%(asctime)s %(name)s: %(levelname)s %(message)s")
     handler.setFormatter(formatter)
     return LOGGER
 
