@@ -148,7 +148,7 @@ class Denon(LineOnlyReceiver, Serializer):
         """change volume up or down or to a discrete value"""
         def _volume1(result, newValue):
             """result is ON or STANDBY"""
-            if result.value() != 'ON':
+            if not result or result.value() != 'ON':
                 return succeed(None)
             if self.mutedVolume:
                 return self.mute()
