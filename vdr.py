@@ -111,7 +111,7 @@ class Vdr(Serializer):
             result = self.openDeferred
         else:
             result = succeed(None)
-        reactor.callLater(5, self.close)
+        reactor.callLater(self.closeTimeout, self.close)
         return result
 
     def close(self):
