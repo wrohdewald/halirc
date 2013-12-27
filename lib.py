@@ -173,9 +173,9 @@ class Message(object):
         if not result:
             return None
         if self.value():
-            result += ':%s' % self.value()
+            result += ' value:%s' % self.value()
         else:
-            result += '?'
+            result += ' value:?'
         return result
 
     def __eq__(self, other):
@@ -202,6 +202,7 @@ class Filter(object):
     running = None
     queued = []
     previousExecuted = None
+    longRunCancellerStarted = False
 
     def __init__(self, parts, action, *args, **kwargs):
         self.action = action
@@ -219,6 +220,11 @@ class Filter(object):
         self.mayRepeat = False
         if len(self.parts) > 1 and not self.maxTime:
             self.maxTime = datetime.timedelta(seconds=len(self.parts)-1)
+        if not Filter.longRunCancellerStarted:
+            Filter.longRunCancellerStarted = True
+            # call this only once
+            print 'starting cancelLongRun'
+            reactor.callLater(1, Filter.cancelLongRun)
 
     def matches(self, events):
         """does the filter match the end of the actual events?"""
@@ -241,6 +247,8 @@ class Filter(object):
         self.event = event
         Filter.queued.append(self)
         Filter.previousExecuted = self
+        if Filter.running:
+            print 'Filter.running still true'
         self.run()
 
     @staticmethod
@@ -267,11 +275,23 @@ class Filter(object):
 
     def notExecuted(self, result):
         """now the filter has finished. TODO: error path"""
-        if 'f' in OPTIONS.debug:
-            LOGGER.debug('ACTION %s had error :%s' % (self, str(result)))
+#        if 'f' in OPTIONS.debug:
+        LOGGER.error('ACTION %s had error :%s' % (self, str(result)))
         Filter.running = None
         Filter.queued = []
         self.run()
+
+    @classmethod
+    def cancelLongRun(cls):
+        if cls.running:
+            elapsed = elapsedSince(cls.running.event.when)
+            print '%s running since %s seconds' % (
+                  cls.running, elapsed)
+            if elapsed > 10:
+                LOGGER.error('ACTION %s cancelled after %s seconds' % (
+                    cls.running, elapsed))
+                cls.running = None
+        reactor.callLater(1, Filter.cancelLongRun)
 
     def __str__(self):
         """return name"""
@@ -322,6 +342,7 @@ class Hal(object):
         """a little helper for a common use case"""
         fltr = Filter(source.message(msg), action, *args, **kwargs)
         fltr.mayRepeat = True
+        print 'appending filter', fltr
         self.filters.append(fltr)
         return fltr
 
@@ -341,11 +362,14 @@ class Hal(object):
 
 class Request(Deferred):
     """we request the device to do something"""
-    def __init__(self, protocol, message, timeout=5):
+    def __init__(self, protocol, message, timeout=None):
         """data without line eol. timeout -1 means we do not expect an answer."""
+        if timeout is None:
+            timeout = 5
         self.protocol = protocol
         self.createTime = datetime.datetime.now()
         self.sendTime = None
+        self.answerTime = None
         assert isinstance(message, Message), message
         self.message = message
         self.timeout = timeout
@@ -388,7 +412,6 @@ class Request(Deferred):
         def send1(dummyResult):
             """now the transport is open"""
             self.sendTime = datetime.datetime.now()
-            reactor.callLater(self.timeout, self.timedout)
             data = self.message.encoded + self.protocol.eol
             if 'p' in OPTIONS.debug:
                 LOGGER.debug('WRITE to %s: %s' % (self.protocol.name(), repr(data)))
@@ -397,16 +420,33 @@ class Request(Deferred):
             """something went wrong"""
             LOGGER.error('cannot open transport: %s', result.getErrorMessage())
             fail(result)
-        return self.protocol.open().addErrback(notOpened).addCallback(self.__delaySending).addCallback(send1)
+        def sent(result):
+            Filter.running = False
+        def cancel(result):
+            if self.answerTime is None:
+                LOGGER.error('Timeout on %s, cancelling' % self)
+                result.cancel()
+        result = self.protocol.open().addErrback(notOpened).addCallback(self.__delaySending).addCallback(send1).addCallback(sent)
+        if self.timeout > 0.0:
+            reactor.callLater(self.timeout, cancel, result)
+        else:
+            result.addCallback(self.timedout)
+        return result
 
-    def timedout(self):
+    def callback(self, *args, **kwargs):
+        """request fulfilled"""
+        Deferred.callback(self, *args, **kwargs)
+
+    def timedout(self, result):
         """do callback(None) and log warning"""
         if self.timeout == -1:
-            return succeed(None)
+            Filter.running = None
+            self.callback(None)
+            return
         if not self.called:
             if self.retries < 2:
                 self.retries += 1
-                return self.send()
+                return self.send() # auch result.addCallback(send) ?
             else:
                 Filter.running = None
                 Filter.queued = []
@@ -422,7 +462,7 @@ class Request(Deferred):
                 comment = ''
             else:
                 comment = 'unsent, created %.3f seconds ago' % elapsedSince(self.createTime)
-        return '%s %s %s %s' % (id(self), self.protocol.name(), self.message, comment)
+        return '%s %s %s %s timeout=%s' % (id(self), self.protocol.name(), self.message, comment, self.timeout)
 
 class TaskQueue:
     """serializes requests for a device. If needed, delay next
@@ -461,15 +501,21 @@ class TaskQueue:
     def run(self):
         """if no task is active and we have pending tasks,
         execute the next one"""
+        def sent(dummy):
+            self.running = None
+            reactor.callLater(0, self.run) # do not call directly, no recursion
         if not self.running and self.queued:
             self.running = self.queued.pop(0)
-            assert self.running
-            self.running.send()
+            if self.running.timeout == -1:
+                return self.running.send().addCallback(sent).addErrback(self.failed)
+            else:
+                return self.running.send().addErrback(self.failed)
 
     def gotAnswer(self, msg):
         """the device returned an answer"""
         if 'r' in OPTIONS.debug:
             LOGGER.debug('gotAnswer for %s: %s' % (self.running, msg))
+        self.running.answerTime = datetime.datetime.now()
         running = self.running
         self.running = None
         running.callback(msg)
@@ -545,12 +591,19 @@ class Serializer(object):
             self.tasks.gotAnswer(msg)
         if not isAnswer or self.answersAsEvents:
             self.hal.eventReceived(msg)
+        return msg
 
     def push(self, *args):
         """unconditionally send cmd"""
         _, msg = self.args2message(*args)
         assert isinstance(msg, Message), msg
         return self.tasks.push(Request(self, msg))
+
+    def pushBlind(self, *args):
+        """unconditionally send cmd, do not expect an answer"""
+        _, msg = self.args2message(*args)
+        assert isinstance(msg, Message), msg
+        return self.tasks.push(Request(self, msg, timeout=-1))
 
     def name(self):
         """for logging messages"""
@@ -599,9 +652,11 @@ class Serializer(object):
 
     def _poweron(self, *dummyArgs):
         """to be overridden by the specific device"""
+        return succeed(None)
 
     def _standby(self, *dummyArgs):
         """to be overridden by the specific device"""
+        return succeed(None)
 
     def reallySend(self, *args):
         """send command without checking"""

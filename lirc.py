@@ -27,7 +27,7 @@ from lib import Message, Serializer, OPTIONS, LOGGER
 
 class LircMessage(Message):
     """holds contents received from a remote control or sent with
-       an IR sender. 
+       an IR sender.
        The encoded format is as read from the lircd socket but
        without the first part with the raw code.
        The decoded format is remote.button.repeat where button
@@ -76,7 +76,7 @@ class LircMessage(Message):
                 yield '00' # default for repeat
             else:
                 yield ''
-            wantedParts -= 1       
+            wantedParts -= 1
 
     def _setAttributes(self, decoded, encoded):
         """initialize all internal values"""

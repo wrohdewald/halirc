@@ -22,7 +22,7 @@ Everything in halirc.py is just an example. You want to start
 your own myhalirc.py and do there whatever you want.
 """
 
-import os
+import os, time
 
 from twisted.internet.defer import succeed, DeferredList
 
@@ -30,22 +30,22 @@ from lib import LOGGER, Hal, main, OsdCat
 from lirc import Lirc
 from gembird import Gembird
 from lgtv import LGTV
-from denon import Denon
+from yamaha import Yamaha
 from vdr import Vdr
 from pioneer import Pioneer
 
 class MorningAction(object):
     """very custom..."""
-    def __init__(self, hal, vdr, denon, lgtv):
+    def __init__(self, hal, vdr, yamaha, lgtv):
         self.vdr = vdr
-        self.denon = denon
+        self.yamaha = yamaha
         self.lgtv = lgtv
         self.silencer = '/home/wr/ausschlafen'
         workdays = [0, 1, 2, 3, 4]
 
-        hal.addTimer(self.start, hour=3, minute=56, weekday=workdays)
-        hal.addTimer(self.changeVolume, hour=4, minute=20, weekday=workdays)
-        hal.addTimer(self.end, hour=4, minute=40, weekday=workdays)
+        hal.addTimer(self.bath, hour=3, minute=55, weekday=workdays)
+        hal.addTimer(self.kitchen, hour=4, minute=20, weekday=workdays)
+        hal.addTimer(self.leaving, hour=4, minute=40, weekday=workdays)
 
     def wanted(self):
         """do we actually want to be triggered?"""
@@ -53,27 +53,25 @@ class MorningAction(object):
             return False
         return True
 
-    def start(self):
-        """start channel NDR 90,3 loudly"""
-        LOGGER.debug('morning.start')
+    def bath(self):
+        """start radio channel NDR 90,3 loudly"""
         if self.wanted():
-            self.denon.poweron().addCallback(
-                self.denon.send, 'SIDBS/SAT').addCallback(
-                self.denon.send, 'MV60')
+            self.yamaha.poweron().addCallback(
+                self.yamaha.send, '@MAIN:INP=HDMI2').addCallback(
+				self.yamaha.send, '@MAIN:VOL=-12.0')
             self.vdr.gotoChannel(None, 'NDR 90,3')
             self.lgtv.standby()
 
-    def changeVolume(self):
+    def kitchen(self):
         """kitchen time"""
-        LOGGER.debug('morning.changeVolume')
         if self.wanted():
-            self.denon.send('MV42')
+            self.yamaha.send('@MAIN:VOL=-35.0')
 
-    def end(self):
+    def leaving(self):
         """off to train"""
         LOGGER.debug('morning.end')
         if self.wanted():
-            self.denon.standby(None)
+            self.yamaha.standby(None)
             if self.vdr.prevChannel:
                 self.vdr.gotoChannel(None, self.vdr.prevChannel)
             self.lgtv.standby(None)
@@ -81,8 +79,8 @@ class MorningAction(object):
             os.remove(self.silencer)
 
 def allOff(dummyEvent, devices):
-    """as the name says. Will be called if the Denon is powered
-    off - the LG does not make sense without Denon"""
+    """as the name says. Will be called if the Yamaha is powered
+    off - the LG does not make sense without Yamaha"""
     return DeferredList([x.standby() for x in devices])
 
 class MyHal(Hal):
@@ -103,24 +101,14 @@ class MyHal(Hal):
         """True if vdr-sxfe does not run"""
         return os.path.exists(self.sxfeWatchFile)
 
-    def gotDenonEvent(self, event, osdcat):
-        """the Denon sent an event"""
+    def gotYamahaEvent(self, event, osdcat):
+        """the Yamaha sent an event"""
+        print 'gotYamahaEvent', event, osdcat
         if not self.osdCatEnabled:
             return succeed(None)
         value = event.value()
-        if event.humanCommand() == 'MV':
-            if len(value) == 3:
-                value = value[:2] + '.5'
-        elif event.humanCommand() == 'TP':
-            self.radioPreset = 'Speicher ' + value
-            # after TP, the Denon always sends TF
-            return succeed(None)
-        elif event.humanCommand() == 'TF':
-            if value >= '050000':
-                value = '%s AM %d kHz' % (self.radioPreset, int(value[:4]))
-            else:
-                value = '%s FM %d.%s MHz' % (self.radioPreset, int(value[:4]), value[4:])
-            self.radioPreset = ''
+        if event.humanCommand() == '@MAIN:VOL':
+            value = '%.1f' % (float(value) + 80)
         if osdcat:
             return osdcat.write(value)
         else:
@@ -151,41 +139,46 @@ class MyHal(Hal):
         """
         # pylint: disable=R0915
         lirc = Lirc(self)
-        denon = Denon(self)
-        denon.answersAsEvents = True
+        yamaha = Yamaha(self, host='yamaha')
         vdr = Vdr(self)
         lgtv = LGTV(self)
         osdcat = OsdCat()
         gembird = Gembird(self)
-        pioneer = Pioneer(self, host='blueray', outlet=gembird[3])
-        for cmd in ('MV', 'SI', 'MS', 'TF', 'TP'):
-            self.addRepeatableFilter(denon, cmd, self.gotDenonEvent, osdcat)
-        self.addRepeatableFilter(lirc, 'AcerP1165.PgUp', denon.mute)
-        self.addFilter(lirc, 'AcerP1165.PgDown', denon.queryStatus)
-        self.addFilter(lirc, 'AcerP1165.0', denon.send, 'SIDBS/SAT')
-        self.addFilter(lirc, 'AcerP1165.1', denon.send, 'SICD')
-        self.addFilter(lirc, 'AcerP1165.2', denon.send, 'SITUNER')
-        self.addFilter(lirc, 'AcerP1165.3', denon.send, 'SIDVD')
-        self.addFilter(lirc, 'AcerP1165.4', denon.send, 'SIVDP')
-        self.addFilter(lirc, 'AcerP1165.5', denon.send, 'SIVCR-1')
-        self.addFilter(lirc, 'AcerP1165.6', denon.send, 'SIVCR-2')
-        self.addFilter(lirc, 'AcerP1165.7', denon.send, 'SIV.AUX')
-        self.addFilter(lirc, 'AcerP1165.8', denon.send, 'SICDR.TAPE')
-        self.addFilter(lirc, 'AcerP1165.9', denon.send, 'SITV')
-        self.addFilter(lirc, 'AcerP1165.Left', denon.poweron)
-        self.addFilter(lirc, 'AcerP1165.Right', allOff, [denon, pioneer])
-        self.addRepeatableFilter(lirc, 'AcerP1165.Down', denon.volume, 'DOWN')
-        self.addRepeatableFilter(lirc, 'AcerP1165.Up', denon.volume, 'UP')
+        pioneer = Pioneer(self, host='pioneer', outlet=gembird[3])
+        self.yamaha = yamaha
+        for cmd in ('@MAIN:VOL', ):
+            self.addRepeatableFilter(yamaha, cmd, self.gotYamahaEvent, osdcat)
 
-#        self.addFilter(lirc, 'Receiver12V.0', lgtv.standby)
-#        self.addFilter(lirc, 'Receiver12V.1', lgtv.poweron)
-        self.addFilter(lirc, 'Receiver12V.6', denon)
-#        self.addFilter(lirc, 'Receiver12V.2', lgtv.send, 'input:HDMI1')
-#        self.addFilter(lirc, 'Receiver12V.3', lgtv.send, 'input:HDMI2')
-#        self.addFilter(lirc, 'Receiver12V.4', lgtv.send, 'input:Component')
-#        self.addFilter(lirc, 'Receiver12V.5', lgtv.send, 'input:DTV')
+        self.addRepeatableFilter(lirc, 'AcerP1165.PgUp', yamaha.mute)
+        self.addFilter(lirc, 'AcerP1165.0', yamaha.send, '@MAIN:INP=HDMI2')
+#        self.addFilter(lirc, 'AcerP1165.1', yamaha.send, 'SICD')
+        self.addFilter(lirc, 'AcerP1165.2', yamaha.send, '@MAIN:INP=TUNER')
+        self.addFilter(lirc, 'AcerP1165.3', yamaha.send, '@MAIN:INP=HDMI3')
+#        self.addFilter(lirc, 'AcerP1165.4', yamaha.send, 'SIVDP')
+#        self.addFilter(lirc, 'AcerP1165.5', yamaha.send, 'SIVCR-1')
+#        self.addFilter(lirc, 'AcerP1165.6', yamaha.send, 'SIVCR-2')
+#        self.addFilter(lirc, 'AcerP1165.7', yamaha.send, 'SIV.AUX')
+#        self.addFilter(lirc, 'AcerP1165.8', yamaha.send, 'SICDR.TAPE')
+#        self.addFilter(lirc, 'AcerP1165.9', yamaha.send, 'SITV')
+        self.addFilter(lirc, 'AcerP1165.Left', yamaha.poweron)
+        self.addFilter(lirc, 'AcerP1165.Right', allOff, [yamaha, lgtv, pioneer])
+        self.addRepeatableFilter(lirc, 'AcerP1165.Down', yamaha.volume, 'Down')
+        self.addRepeatableFilter(lirc, 'AcerP1165.Up', yamaha.volume, 'Up')
 
-        self.addFilter(lirc, 'Receiver12V.6', pioneer.poweron, denon)
+        for vdrKey in ('Ok', 'Channel+', 'Channel-', 'Menu', 'EPG', 'Info', 'Right',
+            'Left', 'Up', 'Down', 'REC', 'Red', 'Green', 'Blue', 'Yellow',
+            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'):
+            self.addFilter(lirc, 'Hauppauge6400.VDR' + vdrKey, lgtv.send, 'power:on')
+            self.addFilter(lirc, 'Hauppauge6400.VDR' + vdrKey, lgtv.send, 'mutescreen:off')
+        self.addFilter(lirc, 'Receiver12V.0', lgtv.standby)
+        self.addFilter(lirc, 'Receiver12V.1', lgtv.poweron)
+        self.addFilter(lirc, 'Hauppauge6400.Power2', lgtv.mutescreen, 'Power2', yamaha)
+        self.addFilter(lirc, 'Receiver12V.2', lgtv.send, 'input:HDMI2')
+        self.addFilter(lirc, 'Receiver12V.3', lgtv.send, 'input:HDMI2')
+        self.addFilter(lirc, 'Receiver12V.4', lgtv.send, 'input:Component')
+        self.addFilter(lirc, 'Receiver12V.5', lgtv.send, 'input:DTV')
+
+        self.addFilter(lirc, 'Receiver12V.6', pioneer.poweron, yamaha)
         self.addFilter(lirc, 'Receiver12V.7', pioneer.standby)
         self.addFilter(lirc, 'XoroDVD.PlayPause', pioneer.play)
         self.addFilter(lirc, 'XoroDVD.Angle', pioneer.send, 'ST')
@@ -202,24 +195,24 @@ class MyHal(Hal):
 
         self.addRepeatableFilter(lirc, 'AcerP1165.Zoom', self.desktop, vdr)
         self.addRepeatableFilter(lirc, 'AcerP1165.Source', lgtv.aspect, ('scan', '4:3', '14:9'))
-        self.addRepeatableFilter(lirc, 'AcerP1165.Freeze', denon.surround, self.osdCatEnabled,
+#        self.addRepeatableFilter(lirc, 'AcerP1165.Freeze', yamaha.surround, self.osdCatEnabled,
             # depending on the source encoding, the actual setting may not
             # always be what this list says
-            (
-              ('PSMODE:CINEMA'),
-              ('PSMODE:MUSIC'),
-              ('MS5CH STEREO'),
-              ('MSCLASSIC CONCERT'),
-              ('MSPURE DIRECT'),
-              ('MSWIDE SCREEN'),
-              ('MSSUPER STADIUM'),
-              ('MSROCK ARENA'),
-              ('MSJAZZ CLUB'),
-              ('MSMONO MOVIE'),
-              ('MSDTS NEO:6')
-            ))
-
-        MorningAction(self, vdr, denon, lgtv)
+#            (
+#              ('PSMODE:CINEMA'),
+#              ('PSMODE:MUSIC'),
+#              ('MS5CH STEREO'),
+#              ('MSCLASSIC CONCERT'),
+#              ('MSPURE DIRECT'),
+#              ('MSWIDE SCREEN'),
+#              ('MSSUPER STADIUM'),
+#              ('MSROCK ARENA'),
+#              ('MSJAZZ CLUB'),
+#              ('MSMONO MOVIE'),
+#              ('MSDTS NEO:6')
+#            ))
+#
+        MorningAction(self, vdr, yamaha, lgtv)
 
 # do not change this:
 main(MyHal)

@@ -152,7 +152,7 @@ class LGTV(LineOnlyReceiver, Serializer):
 
     def _poweron(self, *dummyArgs):
         """power on the LGTV"""
-        return self.send('power:on')
+        return self.send('power:on').addCallback(self.send, 'mutescreen:off')
 
     def _standby(self, *dummyArgs):
         """power off the LGTV"""
@@ -163,7 +163,7 @@ class LGTV(LineOnlyReceiver, Serializer):
         if self.videoMuted and elapsedSince(self.videoMuted) + 1 > self.tvTimeout:
             return self.standby(None)
 
-    def mutescreen(self, event, muteButton, denon):
+    def mutescreen(self, event, muteButton, receiver):
         """except for muteButton, all remote buttons make video visible again"""
         def got1(answer):
             """got answer"""
@@ -184,7 +184,7 @@ class LGTV(LineOnlyReceiver, Serializer):
                 reactor.callLater(self.tvTimeout, self.standbyIfUnused)
                 return self.reallySend('mutescreen:on')
             else:
-                denon.poweron()
+                receiver.poweron()
                 return self.init()
         return self.ask('power').addCallback(got1)
 
