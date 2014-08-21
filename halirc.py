@@ -43,7 +43,6 @@ class MorningAction(object):
         self.silencer = '/home/wr/ausschlafen'
         workdays = [0, 1, 2, 3, 4]
 
-        hal.addTimer(self.bath, hour=3, minute=55, weekday=workdays)
         hal.addTimer(self.kitchen, hour=4, minute=20, weekday=workdays)
         hal.addTimer(self.leaving, hour=4, minute=40, weekday=workdays)
 
@@ -53,19 +52,14 @@ class MorningAction(object):
             return False
         return True
 
-    def bath(self):
+    def kitchen(self):
         """start radio channel NDR 90,3 loudly"""
         if self.wanted():
             self.yamaha.poweron().addCallback(
                 self.yamaha.send, '@MAIN:INP=HDMI2').addCallback(
-				self.yamaha.send, '@MAIN:VOL=-12.0')
+				self.yamaha.send, '@MAIN:VOL=-35.0')
             self.vdr.gotoChannel(None, 'NDR 90,3')
             self.lgtv.standby()
-
-    def kitchen(self):
-        """kitchen time"""
-        if self.wanted():
-            self.yamaha.send('@MAIN:VOL=-35.0')
 
     def leaving(self):
         """off to train"""
