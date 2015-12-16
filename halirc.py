@@ -42,7 +42,7 @@ class MorningAction(object):
         self.lgtv = lgtv
         workdays = [0, 1, 2, 3, 4]
 
-        hal.addTimer(self.kitchen, hour=4, minute=20, weekday=workdays)
+        hal.addTimer(self.kitchen, hour=4, minute=00, weekday=workdays)
         hal.addTimer(self.leaving, hour=4, minute=40, weekday=workdays)
 
     def kitchen(self):
