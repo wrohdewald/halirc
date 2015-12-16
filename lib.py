@@ -712,6 +712,8 @@ class OsdCat(object):
                '--align=center', '--outline=5', '--lines=1', '--delay=2', '--offset=10',
                '--font=-adobe-courier-bold-r-normal--*-640-*-*-*-*' \
                ], env={'DISPLAY': ':0'})
+            if 'p' in OPTIONS.debug:
+                LOGGER.debug('OsdCat started process')
         reactor.callLater(self.closeTimeout, self.close)
 
     def close(self):
@@ -720,6 +722,8 @@ class OsdCat(object):
             if elapsedSince(self.__lastSent) > self.closeTimeout - 1:
                 self.__osdcat.transport.closeStdin()
                 self.__osdcat = None
+                if 'p' in OPTIONS.debug:
+                    LOGGER.debug('OsdCat stopped process')
 
     def write(self, data):
         """write to the osd_cat process"""
