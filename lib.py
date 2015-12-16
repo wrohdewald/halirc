@@ -708,7 +708,7 @@ class OsdCat(object):
         """start process if not running"""
         if not self.__osdcat:
             self.__osdcat = ProcessProtocol()
-            reactor.spawnProcess(self.__osdcat, 'osd_cat', args=['osdcat',
+            reactor.spawnProcess(self.__osdcat, '/usr/bin/osd_cat', args=['osd_cat',
                '--align=center', '--outline=5', '--lines=1', '--delay=2', '--offset=10',
                '--font=-adobe-courier-bold-r-normal--*-640-*-*-*-*' \
                ], env={'DISPLAY': ':0'})
