@@ -69,8 +69,6 @@ class MorningAction(object):
             if self.vdr.prevChannel:
                 self.vdr.gotoChannel(None, self.vdr.prevChannel)
             self.lgtv.standby(None)
-        elif os.path.exists(self.silencer):
-            os.remove(self.silencer)
 
 def allOff(dummyEvent, devices):
     """as the name says. Will be called if the Yamaha is powered
