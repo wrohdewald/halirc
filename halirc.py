@@ -40,35 +40,26 @@ class MorningAction(object):
         self.vdr = vdr
         self.yamaha = yamaha
         self.lgtv = lgtv
-        self.silencer = '/home/wr/ausschlafen'
         workdays = [0, 1, 2, 3, 4]
 
         hal.addTimer(self.kitchen, hour=4, minute=20, weekday=workdays)
         hal.addTimer(self.leaving, hour=4, minute=40, weekday=workdays)
 
-    def wanted(self):
-        """do we actually want to be triggered?"""
-        if os.path.exists(self.silencer):
-            return False
-        return True
-
     def kitchen(self):
         """start radio channel NDR 90,3 loudly"""
-        if self.wanted():
-            self.yamaha.poweron().addCallback(
-                self.yamaha.send, '@MAIN:INP=HDMI2').addCallback(
-				self.yamaha.send, '@MAIN:VOL=-35.0')
-            self.vdr.gotoChannel(None, 'NDR 90,3')
-            self.lgtv.standby()
+        self.yamaha.poweron().addCallback(
+            self.yamaha.send, '@MAIN:INP=HDMI2').addCallback(
+            self.yamaha.send, '@MAIN:VOL=-35.0')
+        self.vdr.gotoChannel(None, 'NDR 90,3')
+        self.lgtv.standby()
 
     def leaving(self):
         """off to train"""
         LOGGER.debug('morning.end')
-        if self.wanted():
-            self.yamaha.standby(None)
-            if self.vdr.prevChannel:
-                self.vdr.gotoChannel(None, self.vdr.prevChannel)
-            self.lgtv.standby(None)
+        self.yamaha.standby(None)
+        if self.vdr.prevChannel:
+            self.vdr.gotoChannel(None, self.vdr.prevChannel)
+        self.lgtv.standby(None)
 
 def allOff(dummyEvent, devices):
     """as the name says. Will be called if the Yamaha is powered
