@@ -702,7 +702,7 @@ class OsdCat(object):
     def __init__(self):
         self.__osdcat = None
         self.__lastSent = None
-        self.closeTimeout = 5
+        self.closeTimeout = 20
 
     def open(self):
         """start process if not running"""
