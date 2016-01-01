@@ -178,23 +178,6 @@ class MyHal(Hal):
 
         self.addRepeatableFilter(lirc, 'AcerP1165.Zoom', self.desktop, vdr)
         self.addRepeatableFilter(lirc, 'AcerP1165.Source', lgtv.aspect, ('scan', '4:3', '14:9'))
-#        self.addRepeatableFilter(lirc, 'AcerP1165.Freeze', yamaha.surround, self.osdCatEnabled,
-            # depending on the source encoding, the actual setting may not
-            # always be what this list says
-#            (
-#              ('PSMODE:CINEMA'),
-#              ('PSMODE:MUSIC'),
-#              ('MS5CH STEREO'),
-#              ('MSCLASSIC CONCERT'),
-#              ('MSPURE DIRECT'),
-#              ('MSWIDE SCREEN'),
-#              ('MSSUPER STADIUM'),
-#              ('MSROCK ARENA'),
-#              ('MSJAZZ CLUB'),
-#              ('MSMONO MOVIE'),
-#              ('MSDTS NEO:6')
-#            ))
-#
         MorningAction(self, vdr, yamaha, lgtv)
 
 # do not change this:
