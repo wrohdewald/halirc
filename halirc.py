@@ -74,9 +74,6 @@ class MyHal(Hal):
         # /usr/local/bin/sxfewatch watches for this file
         # and starts & stops the sxfe frontend accordingly.
         # vdr-sxfe uses the alsa device exclusively
-        self.osdCatEnabled = True # self.desktopActive()
-        # it would be nice to see changes of volume or sound encoding
-        # on the TV but this makes vdpau crash with HD material
         self.radioPreset = ''
         Hal.__init__(self)
 
@@ -86,9 +83,6 @@ class MyHal(Hal):
 
     def gotYamahaEvent(self, event, osdcat):
         """the Yamaha sent an event"""
-        print 'gotYamahaEvent', event, osdcat
-        if not self.osdCatEnabled:
-            return succeed(None)
         value = event.value()
         if event.humanCommand() == '@MAIN:VOL':
             value = '%.1f' % (float(value) + 80)
@@ -101,10 +95,8 @@ class MyHal(Hal):
         """toggle between desktop mode and vdr-sxfe"""
         os.system("chvt 7")
         if self.desktopActive():
-            self.osdCatEnabled = True
             os.remove(self.sxfeWatchFile)
         else:
-            self.osdCatEnabled = True
             with open(self.sxfeWatchFile,'w') as watchFd:
                 watchFd.write('\n')
             vdr.send('hitk stop')
