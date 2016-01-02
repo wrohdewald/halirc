@@ -73,7 +73,7 @@ class VdrProtocol(SimpleTelnet):
         if line.startswith('220 '):
             self.wrapper.openDeferred.callback(None)
             return
-        if line.split(' ')[0] not in ['250', '354', '550']:
+        if line.split(' ')[0] not in ['250', '354', '550', '900', '910']:
             LOGGER.error('from %s: %s' % (self.wrapper.name(), line))
         if self.wrapper.tasks.running:
             self.wrapper.tasks.gotAnswer(VdrMessage(line))
@@ -160,3 +160,16 @@ class Vdr(Serializer):
             else:
                 return succeed(None)
         return self.getChannel().addCallback(got)
+
+    def toggleSofthddevice(self, dummyResult):
+        """toggle softhddevice output between on and off"""
+        def _toggle1(result):
+            """result ends in NOT_SUSPENDED or SUSPEND_NORMAL"""
+            if result.value().endswith(' NOT_SUSPENDED'):
+                return self.send('plug softhddevice susp')
+            elif result.value().endswith(' SUSPEND_NORMAL'):
+                return self.send('plug softhddevice resu')
+            else:
+                LOGGER.debug('plug softhddevice stat returns unexpected answer:{}'.format(repr(result)))
+                return succeed(None)
+        return self.ask('plug softhddevice stat').addCallback(_toggle1)

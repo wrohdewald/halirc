@@ -77,10 +77,6 @@ class MyHal(Hal):
         self.radioPreset = ''
         Hal.__init__(self)
 
-    def desktopActive(self):
-        """True if vdr-sxfe does not run"""
-        return os.path.exists(self.sxfeWatchFile)
-
     def gotYamahaEvent(self, event, osdcat):
         """the Yamaha sent an event"""
         value = event.value()
@@ -91,16 +87,10 @@ class MyHal(Hal):
         else:
             return succeed(None)
 
-    def desktop(self, dummyEvent, vdr):
-        """toggle between desktop mode and vdr-sxfe"""
+    def kodi(self, event, vdr):
+        """toggle between kodi and vdr"""
         os.system("chvt 7")
-        if self.desktopActive():
-            os.remove(self.sxfeWatchFile)
-        else:
-            with open(self.sxfeWatchFile,'w') as watchFd:
-                watchFd.write('\n')
-            vdr.send('hitk stop')
-        return succeed(None)
+        return vdr.toggleSofthddevice(event)
 
     def setup(self):
         """
@@ -168,7 +158,7 @@ class MyHal(Hal):
         self.addFilter(lirc, 'XoroDVD.FastRew', pioneer.send, '/A181AF3E/RU')
         self.addFilter(lirc, 'XoroDVD.Eject', pioneer.send, 'OP')
 
-        self.addRepeatableFilter(lirc, 'AcerP1165.Zoom', self.desktop, vdr)
+        self.addRepeatableFilter(lirc, 'AcerP1165.Zoom', self.kodi, vdr)
         self.addRepeatableFilter(lirc, 'AcerP1165.Source', lgtv.aspect, ('scan', '4:3', '14:9'))
         MorningAction(self, vdr, yamaha, lgtv)
 
