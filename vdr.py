@@ -36,13 +36,19 @@ class VdrMessage(Message):
 
     def command(self):
         """the human readable command"""
-        # TODO: subcommands
-        return self._encoded[:4] if self._encoded else ''
+        parts = self._encoded.split()
+        if parts[0].lower() == 'plug':
+            return ' '.join(parts[:3])
+        else:
+            return ' '.join(parts[:1])
 
     def value(self):
-        """the human readable command"""
-        # TODO: subcommands
-        return self._encoded[4:] if self._encoded else ''
+        """the human readable value"""
+        parts = self._encoded.split()
+        if parts[0].lower() == 'plug':
+            return ' '.join(parts[3:])
+        else:
+            return ' '.join(parts[1:])
 
 class VdrProtocol(SimpleTelnet):
     """talk to vdr"""
