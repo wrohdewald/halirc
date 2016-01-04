@@ -55,6 +55,7 @@ a sequence of characters: 's' shows data sent to appliances.
 'p' shows data sent and read in the transfer format
 'c' regularly checks request queues for zombies and logs them
 'f' shows filtering info
+'t' shows timing info
              """, default='', metavar='DEBUG')
     parser.add_option('-b', '--background', dest='background',
         action="store_true", default=False,
@@ -281,7 +282,8 @@ class Filter(object):
         """after 10 seconds, cancel a running request"""
         if cls.running:
             elapsed = elapsedSince(cls.running.event.when)
-            LOGGER.debug('{} running since {} seconds'.format(
+            if 't' in OPTIONS.debug:
+                LOGGER.debug('{} running since {} seconds'.format(
                   cls.running, elapsed))
             if elapsed > 10:
                 LOGGER.error('ACTION {} cancelled after {} seconds'.format(
@@ -391,9 +393,11 @@ class Request(Deferred):
         allRequests = [x for x in self.protocol.tasks.allRequests if x.sendTime]
         if allRequests:
             waitingAfter = sorted(allRequests, key=self.restOfDelay)[-1]
+            if 't' in OPTIONS.debug:
+                LOGGER.debug('waitingAfter set to {}'.format(waitingAfter))
             stillWaiting = self.restOfDelay(waitingAfter)
             if stillWaiting:
-                if 's' in OPTIONS.debug:
+                if 't' in OPTIONS.debug:
                     prevMessage = waitingAfter.message
                     delay = self.protocol.delay(waitingAfter, self)
                     LOGGER.debug('sleeping {} out of {} seconds between {} and {}'.format(
