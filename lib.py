@@ -485,8 +485,8 @@ class TaskQueue(object):
 
     def failed(self, result):
         """a request failed. Clear the queue."""
-        LOGGER.error(result.getErrorMessage())
-        LOGGER.error('Request %s failed, clearing queue for %s' % (id(self), self.running.protocol.name()))
+        LOGGER.error('Request {} failed with` {}, clearing queue for {}'.format(
+            id(self) % 10000, result, self.running.protocol.name()))
         self.running = None
         self.queued = []
 
