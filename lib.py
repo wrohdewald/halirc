@@ -419,9 +419,10 @@ class Request(Deferred):
             """off it went"""
             Filter.running = None
         def timedout(result):
-            if self.answerTime is None:
-                LOGGER.error('Timeout on {}, cancelling'.format(self))
-                result.cancel()
+            if self.answerTime:
+                return
+            LOGGER.error('Timeout on {}, cancelling'.format(self))
+            result.cancel()
         result = self.protocol.open().addCallback(self.__delaySending).addCallback(send1).addCallback(sent)
         if self.timeout > 0.0:
             reactor.callLater(self.timeout, timedout, result)
