@@ -24,7 +24,7 @@ from optparse import OptionParser
 
 from twisted.internet import reactor
 from twisted.internet.protocol import ProcessProtocol
-from twisted.internet.defer import Deferred, succeed, fail
+from twisted.internet.defer import Deferred, succeed
 from twisted.protocols.basic import LineOnlyReceiver
 from twisted.conch.telnet import Telnet
 
