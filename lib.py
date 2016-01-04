@@ -433,7 +433,7 @@ class Request(Deferred):
         """request fulfilled"""
         Deferred.callback(self, *args, **kwargs)
 
-    def _donotwait(self, result):
+    def _donotwait(self, dummyResult):
         """do callback(None) and log warning"""
         if self.timeout == -1:
             Filter.running = None
