@@ -371,7 +371,6 @@ class Request(Deferred):
         assert isinstance(message, Message), message
         self.message = message
         self.timeout = timeout
-        self.retried = 0
         Deferred.__init__(self)
 
     def restOfDelay(self, oldRequest):
@@ -441,13 +440,9 @@ class Request(Deferred):
             self.callback(None)
             return
         if not self.called:
-            if self.retried < 2:
-                self.retried += 1
-                return self.send() # auch result.addCallback(send) ?
-            else:
-                Filter.running = None
-                Filter.queued = []
-                self.errback(Exception('request timed out: %s' % self))
+            Filter.running = None
+            Filter.queued = []
+            self.errback(Exception('request timed out: %s' % self))
 
     def __str__(self):
         """for logging"""
