@@ -416,10 +416,6 @@ class Request(Deferred):
             if 'p' in OPTIONS.debug:
                 LOGGER.debug('WRITE to {}: {}'.format(self.protocol.name(), repr(data)))
             return self.protocol.write(data)
-        def notOpened(result):
-            """something went wrong"""
-            LOGGER.error('cannot open transport: %s', result.getErrorMessage())
-            fail(result)
         def sent(result):
             """off it went"""
             Filter.running = False
@@ -427,7 +423,7 @@ class Request(Deferred):
             if self.answerTime is None:
                 LOGGER.error('Timeout on {}, cancelling'.format(self))
                 result.cancel()
-        result = self.protocol.open().addErrback(notOpened).addCallback(self.__delaySending).addCallback(send1).addCallback(sent)
+        result = self.protocol.open().addCallback(self.__delaySending).addCallback(send1).addCallback(sent)
         if self.timeout > 0.0:
             reactor.callLater(self.timeout, cancel, result)
         else:
