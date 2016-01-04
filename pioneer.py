@@ -85,7 +85,9 @@ class Pioneer(Serializer):
             self.protocol.wrapper = self
         def gotNoProtocol(result):
             """something went wrong"""
-            LOGGER.error('Pioneer: %s' % result.getErrorMessage())
+            msg = 'Pioneer: %s' % result.getErrorMessage()
+            LOGGER.error(msg)
+            raise Exception(msg)
         point = TCP4ClientEndpoint(reactor, self.host, self.port)
         factory = ClientFactory()
         factory.protocol = PioneerProtocol
