@@ -125,7 +125,7 @@ class Vdr(Serializer):
         if self.protocol:
             if not (self.tasks.running or self.tasks.queued):
                 if elapsedSince(self.tasks.allRequests[-1].sendTime) > self.closeTimeout - 1:
-                    LOGGER.debug('closing vdr')
+                    LOGGER.debug('closing vdr after closeTimeout {}'.format(self.closeTimeout))
                     self.write('quit\n')
                     self.protocol.transport.loseConnection()
                     self.protocol = None
