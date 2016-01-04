@@ -19,6 +19,8 @@ along with this program if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """
 
+import os, subprocess
+
 from twisted.internet.endpoints import TCP4ClientEndpoint
 from twisted.internet.defer import Deferred, succeed
 from twisted.internet import reactor
@@ -73,7 +75,7 @@ class VdrProtocol(SimpleTelnet):
         if line.startswith('220 '):
             self.wrapper.openDeferred.callback(None)
             return
-        if line.split(' ')[0] not in ['250', '354', '550', '900', '910']:
+        if line.split(' ')[0] not in ['250', '354', '550', '900', '910', '911']:
             LOGGER.error('from {}: {}'.format(self.wrapper.name(), line))
         if self.wrapper.tasks.running:
             self.wrapper.tasks.gotAnswer(VdrMessage(line))
@@ -100,6 +102,7 @@ class Vdr(Serializer):
         self.openDeferred = None
         self.prevChannel = None
         self.closeTimeout = 5
+        self.kodiProcess = None
 
     def open(self):
         """open connection if not open"""
@@ -163,13 +166,33 @@ class Vdr(Serializer):
 
     def toggleSofthddevice(self, dummyResult):
         """toggle softhddevice output between on and off"""
+        def startKodi(dummyResult):
+            """start kodi"""
+            if  self.kodiProcess:
+                return
+            environ = dict(os.environ)
+            environ['DISPLAY'] = ':0'
+            environ['HOME'] = '/home/wr'
+            self.kodiProcess = subprocess.Popen(["kodi", "-fs"], env=environ)
+            LOGGER.debug('started kodi process {}'.format(self.kodiProcess.pid))
+        def _remoteOff(dummyResult):
+            """disable remote control"""
+            return self.send('remo off')
         def _toggle1(result):
             """result ends in NOT_SUSPENDED or SUSPEND_NORMAL"""
             if result.value().endswith(' NOT_SUSPENDED'):
-                return self.send('plug softhddevice susp')
+                return self.send('plug softhddevice susp').addCallback(_remoteOff).addCallback(startKodi)
             elif result.value().endswith(' SUSPEND_NORMAL'):
-                return self.send('plug softhddevice resu')
+                if self.kodiProcess:
+                    LOGGER.debug('killing kodi process {}'.format(self.kodiProcess.pid))
+                    self.kodiProcess.kill() # would be nice to terminate cleanly
+                    _ = self.kodiProcess.wait()
+                    self.kodiProcess = None
+                subprocess.Popen(['killall', '-9', 'kodi.bin']).wait()
+                reactor.callLater(7, self.send, 'plug softhddevice resu')
+                return self.send('remo on')
             else:
                 LOGGER.debug('plug softhddevice stat returns unexpected answer:{}'.format(repr(result)))
                 return succeed(None)
+
         return self.ask('plug softhddevice stat').addCallback(_toggle1)
