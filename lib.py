@@ -169,14 +169,9 @@ class Message(object):
 
     def __str__(self):
         """use the human readable form for logging"""
-        result = self.humanCommand()
-        if not result:
-            return None
-        if self.value():
-            result += ' value:%s' % self.value()
-        else:
-            result += ' value:?'
-        return result
+        if self.humanCommand:
+            return '{}: {} value:{}'.format(self.__class__.__name__, self.humanCommand(),
+                self.value() or '?')
 
     def __eq__(self, other):
         """are they identical?"""
@@ -463,7 +458,7 @@ class Request(Deferred):
                 comment = ''
             else:
                 comment = 'unsent, created %.3f seconds ago' % elapsedSince(self.createTime)
-        return '%s %s %s %s timeout=%s' % (id(self), self.protocol.name(), self.message, comment, self.timeout)
+        return '%s %s %s %s timeout=%s' % (id(self) % 10000, self.protocol.name(), self.message, comment, self.timeout)
 
 class TaskQueue(object):
     """serializes requests for a device. If needed, delay next
@@ -735,6 +730,12 @@ class OsdCat(object):
         self.__osdcat.transport.write(data + '\n')
         self.__lastSent = datetime.datetime.now()
         return succeed(None)
+
+    def __str__(self):
+        return 'OsdCat'
+
+    def __repr__(self):
+        return 'OsdCat'
 
 class SimpleTelnet(LineOnlyReceiver, Telnet):
     """just what we normally need"""
