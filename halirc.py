@@ -75,6 +75,7 @@ class MyHal(Hal):
         # and starts & stops the sxfe frontend accordingly.
         # vdr-sxfe uses the alsa device exclusively
         self.radioPreset = ''
+        self.yamaha = None
         Hal.__init__(self)
 
     @staticmethod
