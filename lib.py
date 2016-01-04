@@ -443,7 +443,7 @@ class Request(Deferred):
         if not self.called:
             Filter.running = None
             Filter.queued = []
-            self.errback(Exception('request timed out: %s' % self))
+            self.errback(Exception('request timed out: {}'.format(self)))
 
     def __str__(self):
         """for logging"""
