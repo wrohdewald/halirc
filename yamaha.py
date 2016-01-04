@@ -19,15 +19,13 @@ along with this program if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """
 
-import traceback
-
 from twisted.internet.endpoints import TCP4ClientEndpoint
 from twisted.internet import reactor
 from twisted.internet.protocol import ClientFactory
-from twisted.internet.defer import Deferred, succeed
+from twisted.internet.defer import succeed
 
 
-from lib import Serializer, SimpleTelnet, Message, OPTIONS, LOGGER, elapsedSince
+from lib import Serializer, SimpleTelnet, Message, LOGGER, elapsedSince
 
 class YamahaMessage(Message):
     """holds content of a message from or to Yamaha"""
@@ -50,8 +48,8 @@ class YamahaMessage(Message):
     def answerMatches(self, answer):
         return Message.answerMatches(self, answer) and self.isQuestion
 
-	def __str__(self):
-		return self._encoded
+    def __str__(self):
+        return self._encoded
 
     def __repr__(self):
         return 'YamahaMessage(%s)' % self._encoded
@@ -159,10 +157,10 @@ class Yamaha(Serializer):
     def ask(self, *args):
         argList = list(args)
         argList[-1] += '=?'
-        _, msg = self.args2message(*argList)
+        _, msg = self.args2message(*argList) # pylint: disable=star-args
         return self.push(msg)
 
-    def _poweron(self, *args):
+    def _poweron(self, *dummyArgs):
         """power on the Yamaha"""
         return self.send('@MAIN:PWR=On')
 
