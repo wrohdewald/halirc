@@ -53,11 +53,11 @@ class PioneerProtocol(SimpleTelnet):
     def lineReceived(self, line):
         """we got a full line from Pioneer"""
         if 'p' in OPTIONS.debug:
-            LOGGER.debug('READ from %s: %s' % (self.wrapper.name(), repr(line)))
+            LOGGER.debug('READ from {}: {}'.format(self.wrapper.name(), repr(line)))
         if self.wrapper.tasks.running:
             self.wrapper.tasks.gotAnswer(PioneerMessage(line))
         else:
-            LOGGER.error('Pioneer sent data without being asked:%s' % line)
+            LOGGER.error('Pioneer sent data without being asked:{}'.format(line))
 
 class Pioneer(Serializer):
 
@@ -110,9 +110,8 @@ class Pioneer(Serializer):
         _, msg = self.args2message(*args)
         return self.push(msg)
 
-    def _poweron(self, denon, *args):
+    def _poweron(self, *dummyArgs):
         """power on the Pioneer"""
-        print 'denon is:', denon
         return self.send('PN')
 
     def _standby(self, *dummyArgs):
