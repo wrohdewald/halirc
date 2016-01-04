@@ -135,8 +135,9 @@ class Yamaha(Serializer):
         prevCmd = previous.message.humanCommand() if previous else ''
         if not previous.message.isQuestion and prevCmd == '@MAIN:PWR':
             return 1
-        else:
+        elif not previous.message.isQuestion:
             return 0.05 # Manual says always want 100 milliseconds
+        # do not wait after questions
 
     def write(self, data):
         if not self.protocol:
