@@ -140,7 +140,7 @@ class Lirc(Serializer):
             """now we have a connection"""
             self.protocol = result
             self.protocol.wrapper = self
-            print 'got lirc protocol'
+            LOGGER.debug('got lirc protocol')
         def gotNoProtocol(result):
             """something went wrong"""
             print "got no connection to lirc: %s" % result

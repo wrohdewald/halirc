@@ -148,7 +148,6 @@ class Yamaha(Serializer):
     def send(self, *args):
         """unconditionally send cmd"""
         _, msg = self.args2message(*args)
-        print 'amaha.send:', msg
         if msg.value() == '?':
             return self.push(msg)
         else:
