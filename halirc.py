@@ -22,7 +22,7 @@ Everything in halirc.py is just an example. You want to start
 your own myhalirc.py and do there whatever you want.
 """
 
-import os, time
+import os
 
 from twisted.internet.defer import succeed, DeferredList
 
@@ -77,7 +77,8 @@ class MyHal(Hal):
         self.radioPreset = ''
         Hal.__init__(self)
 
-    def gotYamahaEvent(self, event, osdcat):
+    @staticmethod
+    def gotYamahaEvent(event, osdcat):
         """the Yamaha sent an event"""
         value = event.value()
         if event.humanCommand() == '@MAIN:VOL':
@@ -87,7 +88,8 @@ class MyHal(Hal):
         else:
             return succeed(None)
 
-    def kodi(self, event, vdr):
+    @staticmethod
+    def kodi(event, vdr):
         """toggle between kodi and vdr"""
         os.system("chvt 7")
         return vdr.toggleSofthddevice(event)
