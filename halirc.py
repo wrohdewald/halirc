@@ -70,10 +70,6 @@ class MyHal(Hal):
     """an example for user definitions"""
 
     def __init__(self):
-        self.sxfeWatchFile = '/video0/nosxfe'
-        # /usr/local/bin/sxfewatch watches for this file
-        # and starts & stops the sxfe frontend accordingly.
-        # vdr-sxfe uses the alsa device exclusively
         self.radioPreset = ''
         self.yamaha = None
         Hal.__init__(self)
