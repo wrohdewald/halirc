@@ -418,15 +418,19 @@ class Request(Deferred):
         def sent(result):
             """off it went"""
             Filter.running = None
+            if self.timeout > 0:
+                reactor.callLater(self.timeout, timedout, result)
         def timedout(result):
+            """did we time out?"""
             if self.answerTime:
                 return
             LOGGER.error('Timeout on {}, cancelling'.format(self))
             result.cancel()
+            Filter.running = None
+            Filter.queued = []
+            self.errback(Exception('request timed out: {}'.format(self)))
         result = self.protocol.open().addCallback(self.__delaySending).addCallback(send1).addCallback(sent)
-        if self.timeout > 0.0:
-            reactor.callLater(self.timeout, timedout, result)
-        else:
+        if self.timeout < 0.0:
             result.addCallback(self._donotwait)
         return result
 
@@ -436,14 +440,9 @@ class Request(Deferred):
 
     def _donotwait(self, dummyResult):
         """do callback(None) and log warning"""
-        if self.timeout == -1:
-            Filter.running = None
-            self.callback(None)
-            return
-        if not self.called:
-            Filter.running = None
-            Filter.queued = []
-            self.errback(Exception('request timed out: {}'.format(self)))
+        assert self.timeout == -1, "_donotwait: timeout {} should be -1".format(self.timeout)
+        Filter.running = None
+        self.callback(None)
 
     def __str__(self):
         """for logging"""
