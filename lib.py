@@ -417,7 +417,7 @@ class Request(Deferred):
             return self.protocol.write(data)
         def sent(result):
             """off it went"""
-            Filter.running = False
+            Filter.running = None
         def timedout(result):
             if self.answerTime is None:
                 LOGGER.error('Timeout on {}, cancelling'.format(self))
