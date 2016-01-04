@@ -79,9 +79,9 @@ class LGTVMessage(Message):
             encodedValue = parts[2][2:]
             items = [x for x in self.commands.items() if x[1][1] == cmd2]
             if len(items) > 1:
-                LOGGER.error('answer from LG matches more than 1 command: %s' % items)
+                LOGGER.error('answer from LG matches more than 1 command: {}'.format(items))
             elif len(items) == 0:
-                LOGGER.error('answer from LG matches no command: %s' % self.encoded)
+                LOGGER.error('answer from LG matches no command: {}'.format(self.encoded))
             humanCommand = items[0][0]
             if encodedValue:
                 decodedValue = self.values[humanCommand][encodedValue]
@@ -103,7 +103,7 @@ class LGTVMessage(Message):
         result = self._decoded.split(':')[0]
         if result:
             if result not in self.commands:
-                LOGGER.critical('LGTV: unknown argument %s' % self._decoded)
+                LOGGER.critical('LGTV: unknown argument {}'.format(self._decoded))
                 sys.exit(2)
         return result
 
