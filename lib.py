@@ -126,7 +126,7 @@ class Message(object):
     """holds content of a message from or to a device"""
     def __init__(self, decoded=None, encoded=None):
         assert (decoded is None) != (encoded is None), \
-            'decoded:%s encoded:%s' % (decoded, encoded)
+            'decoded:{} encoded:{}'.format(decoded, encoded)
         if decoded is not None:
             assert isinstance(decoded, basestring), repr(decoded)
         if encoded is not None:
@@ -243,7 +243,7 @@ class Filter(object):
             if event.when - Filter.previousExecuted.event.when < repeatMaxTime:
                 return
         if 'f' in OPTIONS.debug:
-            LOGGER.debug('ACTION queue:%s' % str(self))
+            LOGGER.debug('ACTION queue:{}'.format(str(self)))
         self.event = event
         Filter.queued.append(self)
         Filter.previousExecuted = self
@@ -261,34 +261,35 @@ class Filter(object):
             fltr = Filter.running = Filter.queued.pop(0)
             assert fltr.action
             if 'f' in OPTIONS.debug:
-                LOGGER.debug('ACTION start:%s' % str(fltr))
+                LOGGER.debug('ACTION start:{}'.format(str(fltr)))
             act = fltr.action(fltr.event, *fltr.args, **fltr.kwargs)
-            assert act, 'Filter %s returns None' % str(fltr)
+            assert act, 'Filter {} returns None'.format(str(fltr))
             return act.addCallback(fltr.executed).addErrback(fltr.notExecuted)
 
     def executed(self, dummyResult):
         """now the filter has finished. TODO: error path"""
         if 'f' in OPTIONS.debug:
-            LOGGER.debug('ACTION done :%s ' % self)
+            LOGGER.debug('ACTION done :{} '.format(self))
         Filter.running = None
         self.run()
 
     def notExecuted(self, result):
         """now the filter has finished. TODO: error path"""
 #        if 'f' in OPTIONS.debug:
-        LOGGER.error('ACTION %s had error :%s' % (self, str(result)))
+        LOGGER.error('ACTION {} had error :{}'.format((self, str(result))))
         Filter.running = None
         Filter.queued = []
         self.run()
 
     @classmethod
     def cancelLongRun(cls):
+        """after 10 seconds, cancel a running request"""
         if cls.running:
             elapsed = elapsedSince(cls.running.event.when)
             print '%s running since %s seconds' % (
                   cls.running, elapsed)
             if elapsed > 10:
-                LOGGER.error('ACTION %s cancelled after %s seconds' % (
+                LOGGER.error('ACTION {} cancelled after {} seconds'.format(
                     cls.running, elapsed))
                 cls.running = None
         reactor.callLater(1, Filter.cancelLongRun)
@@ -323,7 +324,7 @@ class Hal(object):
     def eventReceived(self, event):
         """central entry point for all events"""
         if 'e' in OPTIONS.debug:
-            LOGGER.debug('Hal.eventReceived:%s' % str(event))
+            LOGGER.debug('received {}'.format(event))
         self.events.append(event)
         matchingFilters = list(x for x in self.filters if x.matches(self.events))
         for fltr in matchingFilters:
@@ -400,7 +401,7 @@ class Request(Deferred):
                 if 's' in OPTIONS.debug:
                     prevMessage = waitingAfter.message
                     delay = self.protocol.delay(waitingAfter, self)
-                    LOGGER.debug('sleeping %s out of %s seconds between %s and %s' % ( \
+                    LOGGER.debug('sleeping {} out of {} seconds between {} and {}'.format(
                         stillWaiting, delay, prevMessage, self.message))
                 deferred = Deferred()
                 reactor.callLater(stillWaiting, deferred.callback, None)
@@ -414,7 +415,7 @@ class Request(Deferred):
             self.sendTime = datetime.datetime.now()
             data = self.message.encoded + self.protocol.eol
             if 'p' in OPTIONS.debug:
-                LOGGER.debug('WRITE to %s: %s' % (self.protocol.name(), repr(data)))
+                LOGGER.debug('WRITE to {}: {}'.format(self.protocol.name(), repr(data)))
             return self.protocol.write(data)
         def notOpened(result):
             """something went wrong"""
@@ -424,7 +425,7 @@ class Request(Deferred):
             Filter.running = False
         def cancel(result):
             if self.answerTime is None:
-                LOGGER.error('Timeout on %s, cancelling' % self)
+                LOGGER.error('Timeout on {}, cancelling'.format(self))
                 result.cancel()
         result = self.protocol.open().addErrback(notOpened).addCallback(self.__delaySending).addCallback(send1).addCallback(sent)
         if self.timeout > 0.0:
@@ -464,7 +465,7 @@ class Request(Deferred):
                 comment = 'unsent, created %.3f seconds ago' % elapsedSince(self.createTime)
         return '%s %s %s %s timeout=%s' % (id(self), self.protocol.name(), self.message, comment, self.timeout)
 
-class TaskQueue:
+class TaskQueue(object):
     """serializes requests for a device. If needed, delay next
     request. Problem: We should do this at a higher level. For
     Denon, if the remote sends two poweron in fast succession,
@@ -484,7 +485,7 @@ class TaskQueue:
         request.previous = self.allRequests[-1] if self.allRequests else None
         self.queued.append(request)
         if 'c' in OPTIONS.debug:
-            LOGGER.debug('queued for %s: %s' % (self.device, request))
+            LOGGER.debug('queued for {}: {}'.format(self.device, request))
         self.allRequests = self.allRequests[-20:]
         self.allRequests.append(request)
         request.addErrback(self.failed)
@@ -502,6 +503,7 @@ class TaskQueue:
         """if no task is active and we have pending tasks,
         execute the next one"""
         def sent(dummy):
+            """off it went"""
             self.running = None
             reactor.callLater(0, self.run) # do not call directly, no recursion
         if not self.running and self.queued:
@@ -514,7 +516,7 @@ class TaskQueue:
     def gotAnswer(self, msg):
         """the device returned an answer"""
         if 'r' in OPTIONS.debug:
-            LOGGER.debug('gotAnswer for %s: %s' % (self.running, msg))
+            LOGGER.debug('gotAnswer for {}: {}'.format(self.running, msg))
         self.running.answerTime = datetime.datetime.now()
         running = self.running
         self.running = None
@@ -583,7 +585,7 @@ class Serializer(object):
     def defaultInputHandler(self, data):
         """we got a line from a device"""
         if 'p' in OPTIONS.debug:
-            LOGGER.debug('READ from %s: %s' % (self.name(), repr(data)))
+            LOGGER.debug('READ from {}: {}'.format(self.name(), repr(data)))
         msg = self.message(encoded=data)
         isAnswer = self.tasks.running and \
             self.tasks.running.message.answerMatches(msg)
@@ -607,7 +609,7 @@ class Serializer(object):
 
     def name(self):
         """for logging messages"""
-        return self.__class__.__name__.replace('Protocol','')
+        return self.__class__.__name__.replace('Protocol', '')
 
     def args2message(self, *args):
         """convert the last argument to a Message"""
@@ -650,11 +652,11 @@ class Serializer(object):
             result.addBoth(isOff)
         return result
 
-    def _poweron(self, *dummyArgs):
+    def _poweron(self, *dummyArgs): # pylint: disable=no-self-use
         """to be overridden by the specific device"""
         return succeed(None)
 
-    def _standby(self, *dummyArgs):
+    def _standby(self, *dummyArgs): # pylint: disable=no-self-use
         """to be overridden by the specific device"""
         return succeed(None)
 
@@ -695,7 +697,7 @@ class Serializer(object):
             serializer = ref()
             if serializer:
                 for request in serializer.tasks.queued:
-                    LOGGER.debug('open: %s' % request)
+                    LOGGER.debug('open: {}'.format(request))
 
 class OsdCat(object):
     """lets us display OSD messages on the X server"""
@@ -729,7 +731,7 @@ class OsdCat(object):
         """write to the osd_cat process"""
         self.open()
         if 'p' in OPTIONS.debug:
-            LOGGER.debug('WRITE to OsdCat: %s' % repr(data))
+            LOGGER.debug('WRITE to OsdCat: {}'.format(repr(data)))
         self.__osdcat.transport.write(data + '\n')
         self.__lastSent = datetime.datetime.now()
         return succeed(None)
