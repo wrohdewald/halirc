@@ -421,6 +421,7 @@ class Request(Deferred):
             LOGGER.error('cannot open transport: %s', result.getErrorMessage())
             fail(result)
         def sent(result):
+            """off it went"""
             Filter.running = False
         def cancel(result):
             if self.answerTime is None:
