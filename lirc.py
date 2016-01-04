@@ -118,7 +118,7 @@ class LircProtocol(LineOnlyReceiver):
     def lineReceived(self, data):
         """we got a raw line from the lirc socket"""
         if 'p' in OPTIONS.debug:
-            LOGGER.debug('READ from %s: %s' % (self.wrapper.name(), repr(data)))
+            LOGGER.debug('READ from {}: {}'.format(self.wrapper.name(), repr(data)))
         msg = self.wrapper.message(encoded=data)
         self.wrapper.hal.eventReceived(msg)
 
