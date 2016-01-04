@@ -418,22 +418,22 @@ class Request(Deferred):
         def sent(result):
             """off it went"""
             Filter.running = False
-        def cancel(result):
+        def timedout(result):
             if self.answerTime is None:
                 LOGGER.error('Timeout on {}, cancelling'.format(self))
                 result.cancel()
         result = self.protocol.open().addCallback(self.__delaySending).addCallback(send1).addCallback(sent)
         if self.timeout > 0.0:
-            reactor.callLater(self.timeout, cancel, result)
+            reactor.callLater(self.timeout, timedout, result)
         else:
-            result.addCallback(self.timedout)
+            result.addCallback(self._donotwait)
         return result
 
     def callback(self, *args, **kwargs):
         """request fulfilled"""
         Deferred.callback(self, *args, **kwargs)
 
-    def timedout(self, result):
+    def _donotwait(self, result):
         """do callback(None) and log warning"""
         if self.timeout == -1:
             Filter.running = None
