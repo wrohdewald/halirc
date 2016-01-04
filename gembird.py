@@ -44,7 +44,7 @@ class GembirdProtocol(ProcessProtocol):
                 # what sense does it make to add that
                 # to an error message?
                 break
-            LOGGER.error('Gembird: %s' % line)
+            LOGGER.error('Gembird: {}'.format(line))
 
 class GembirdMessage(Message):
     """the decoced, human readable form is:
@@ -114,7 +114,7 @@ class GembirdMessage(Message):
             return ''
         return self._encoded.split()[0]
 
-class GembirdOutlet:
+class GembirdOutlet(object):
     """we want one object per outlet"""
     def __init__(self, gembird, outlet):
         self.gembird = gembird
