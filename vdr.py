@@ -62,7 +62,7 @@ class VdrProtocol(SimpleTelnet):
     def lineReceived(self, line):
         """we got a full line from vdr"""
         if 'p' in OPTIONS.debug:
-            LOGGER.debug('READ from %s: %s' % (self.wrapper.name(), repr(line)))
+            LOGGER.debug('READ from {}: {}'.format(self.wrapper.name(), repr(line)))
         if line.startswith('221 '):
             # this is an error because we should have
             # closed the connection ourselves after a
@@ -74,11 +74,11 @@ class VdrProtocol(SimpleTelnet):
             self.wrapper.openDeferred.callback(None)
             return
         if line.split(' ')[0] not in ['250', '354', '550', '900', '910']:
-            LOGGER.error('from %s: %s' % (self.wrapper.name(), line))
+            LOGGER.error('from {}: {}'.format(self.wrapper.name(), line))
         if self.wrapper.tasks.running:
             self.wrapper.tasks.gotAnswer(VdrMessage(line))
         else:
-            LOGGER.error('vdr sent data without being asked:%s' % line)
+            LOGGER.error('vdr sent data without being asked:{}'.format(line))
 
 class Vdr(Serializer):
 
