@@ -369,7 +369,7 @@ class Request(Deferred):
         assert isinstance(message, Message), message
         self.message = message
         self.timeout = timeout
-        self.retries = 0
+        self.retried = 0
         Deferred.__init__(self)
 
     def restOfDelay(self, oldRequest):
@@ -440,8 +440,8 @@ class Request(Deferred):
             self.callback(None)
             return
         if not self.called:
-            if self.retries < 2:
-                self.retries += 1
+            if self.retried < 2:
+                self.retried += 1
                 return self.send() # auch result.addCallback(send) ?
             else:
                 Filter.running = None
