@@ -223,7 +223,7 @@ class Filter(object):
         if not Filter.longRunCancellerStarted:
             Filter.longRunCancellerStarted = True
             # call this only once
-            print 'starting cancelLongRun'
+            LOGGER.debug('starting cancelLongRun')
             reactor.callLater(1, Filter.cancelLongRun)
 
     def matches(self, events):
@@ -248,7 +248,7 @@ class Filter(object):
         Filter.queued.append(self)
         Filter.previousExecuted = self
         if Filter.running:
-            print 'Filter.running still true'
+            LOGGER.debug('Filter.running still true')
         self.run()
 
     @staticmethod
@@ -286,8 +286,8 @@ class Filter(object):
         """after 10 seconds, cancel a running request"""
         if cls.running:
             elapsed = elapsedSince(cls.running.event.when)
-            print '%s running since %s seconds' % (
-                  cls.running, elapsed)
+            LOGGER.debug('{} running since {} seconds'.format(
+                  cls.running, elapsed))
             if elapsed > 10:
                 LOGGER.error('ACTION {} cancelled after {} seconds'.format(
                     cls.running, elapsed))
@@ -343,7 +343,7 @@ class Hal(object):
         """a little helper for a common use case"""
         fltr = Filter(source.message(msg), action, *args, **kwargs)
         fltr.mayRepeat = True
-        print 'appending filter', fltr
+        LOGGER.debug('appending filter {}'.format(fltr))
         self.filters.append(fltr)
         return fltr
 
