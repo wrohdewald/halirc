@@ -63,7 +63,7 @@ a sequence of characters: 's' shows data sent to appliances.
     global OPTIONS # pylint: disable=W0603
     OPTIONS = parser.parse_args()[0]
     if OPTIONS.debug == 'all':
-        OPTIONS.debug = 'srepcf'
+        OPTIONS.debug = 'srepcft'
 
 def initLogger():
     """logging goes to stderr when running in foregrund, else
