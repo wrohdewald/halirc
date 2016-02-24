@@ -297,7 +297,7 @@ class Filter(object):
             action = self.action.__name__
         else:
             action = '.'.join([self.action.im_class.__name__, self.action.__name__])
-        result = '%s: %s' % (','.join(str(x) for x in self.parts), action)
+        result = '%s %s: %s' % (id(self) % 10000, ','.join(str(x) for x in self.parts), action)
         if self.args:
             result += ' args=%s' % str(self.args)
         if self.kwargs:
