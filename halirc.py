@@ -36,10 +36,9 @@ from pioneer import Pioneer
 
 class MorningAction(object):
     """very custom..."""
-    def __init__(self, hal, vdr, yamaha, lgtv):
+    def __init__(self, hal, vdr, yamaha):
         self.vdr = vdr
         self.yamaha = yamaha
-        self.lgtv = lgtv
         workdays = [0, 1, 2, 3, 4]
 
         hal.addTimer(self.kitchen, hour=4, minute=00, weekday=workdays)
@@ -51,7 +50,6 @@ class MorningAction(object):
             self.yamaha.send, '@MAIN:INP=HDMI2').addCallback(
             self.yamaha.send, '@MAIN:VOL=-35.0')
         self.vdr.gotoChannel(None, 'NDR 90,3')
-        self.lgtv.standby()
 
     def leaving(self):
         """off to train"""
@@ -59,7 +57,6 @@ class MorningAction(object):
         self.yamaha.standby(None)
         if self.vdr.prevChannel:
             self.vdr.gotoChannel(None, self.vdr.prevChannel)
-        self.lgtv.standby(None)
 
 def allOff(dummyEvent, devices):
     """as the name says. Will be called if the Yamaha is powered
@@ -159,7 +156,7 @@ class MyHal(Hal):
 
         self.addRepeatableFilter(lirc, 'AcerP1165.Zoom', self.kodi, vdr)
         self.addRepeatableFilter(lirc, 'AcerP1165.Source', lgtv.aspect, ('scan', '4:3', '14:9'))
-        MorningAction(self, vdr, yamaha, lgtv)
+        MorningAction(self, vdr, yamaha)
 
 # do not change this:
 main(MyHal)
