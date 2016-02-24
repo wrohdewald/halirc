@@ -244,7 +244,7 @@ class Filter(object):
         Filter.queued.append(self)
         Filter.previousExecuted = self
         if Filter.running:
-            LOGGER.debug('Filter.running still true')
+            LOGGER.debug('Filter still runs:{}'.format(Filter.running))
         self.run()
 
     @staticmethod
