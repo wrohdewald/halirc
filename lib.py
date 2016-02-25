@@ -413,7 +413,7 @@ class Request(Deferred):
             self.sendTime = datetime.datetime.now()
             data = self.message.encoded + self.protocol.eol
             if 'p' in OPTIONS.debug:
-                LOGGER.debug('WRITE to {}: {}'.format(self.protocol.name(), repr(data)))
+                LOGGER.debug('WRITE {}: {}'.format(self, repr(data)))
             return self.protocol.write(data)
         def sent(result):
             """off it went"""
@@ -576,7 +576,7 @@ class Serializer(object):
     def defaultInputHandler(self, data):
         """we got a line from a device"""
         if 'p' in OPTIONS.debug:
-            LOGGER.debug('READ from {}: {}'.format(self.name(), repr(data)))
+            LOGGER.debug('READ {}: {}'.format(self.name(), repr(data)))
         msg = self.message(encoded=data)
         isAnswer = self.tasks.running and \
             self.tasks.running.message.answerMatches(msg)
