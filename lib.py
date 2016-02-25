@@ -18,7 +18,7 @@ along with this program if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """
 
-import datetime, daemon, weakref, types, sys
+import datetime, daemon, weakref, types
 import logging, logging.handlers
 from optparse import OptionParser
 
@@ -54,7 +54,7 @@ a sequence of characters: 's' shows data sent to appliances.
 'e' shows events received
 'p' shows data sent and read in the transfer format
 'c' regularly checks request queues for zombies and logs them
-'f' shows filtering info
+'f' shows trigger info
 't' shows timing info
              """, default='', metavar='DEBUG')
     parser.add_option('-b', '--background', dest='background',
@@ -179,21 +179,21 @@ class Message(object):
         return self.decoded == other.decoded
 
     def matches(self, other):
-        """used for filters"""
+        """used for triggers"""
         if self.isQuestion or other.isQuestion:
             return self.humanCommand() == other.humanCommand()
         else:
             return self == other
 
-class Filter(object):
-    """a filter always has a name. parts is a single event or a list of events.
+class Trigger(object):
+    """a trigger always has a name. parts is a single event or a list of events.
        parts will be compared with the actual received events.
     Attributes:
         maxTime        of type timedelta, with default = len(parts) seconds.
-        stopIfMatch    Default is False. If True and this Filter matches, do not
-                       look at following filters
-        mayRepeat      Default is False. If True, the filter will not trigger
-                       if it is the last previously triggered filter
+        stopIfMatch    Default is False. If True and this Trigger matches, do not
+                       look at following triggers
+        mayRepeat      Default is False. If True, the trigger will not execute
+                       if it is the last previously executed trigger
     """
     running = None
     queued = []
@@ -210,20 +210,20 @@ class Filter(object):
         for event in parts:
             assert type(event) != Message
         self.parts = parts
-        self.event = None # the current event having triggered this filter
+        self.event = None # the current event having triggered this trigger
         self.maxTime = None
         self.stopIfMatch = False
         self.mayRepeat = False
         if len(self.parts) > 1 and not self.maxTime:
             self.maxTime = datetime.timedelta(seconds=len(self.parts)-1)
-        if not Filter.longRunCancellerStarted:
-            Filter.longRunCancellerStarted = True
+        if not Trigger.longRunCancellerStarted:
+            Trigger.longRunCancellerStarted = True
             # call this only once
             LOGGER.debug('starting cancelLongRun')
-            reactor.callLater(1, Filter.cancelLongRun)
+            reactor.callLater(1, Trigger.cancelLongRun)
 
     def matches(self, events):
-        """does the filter match the end of the actual events?"""
+        """does the trigger match the end of the actual events?"""
         comp = events[-len(self.parts):]
         if len(comp) < len(self.parts):
             return False
@@ -233,48 +233,48 @@ class Filter(object):
         return all(comp[x].matches(self.parts[x]) for x in range(0, len(comp)))
 
     def execute(self, event):
-        """execute this filter action"""
-        if not self.mayRepeat and id(self) == id(Filter.previousExecuted):
+        """execute this trigger action"""
+        if not self.mayRepeat and id(self) == id(Trigger.previousExecuted):
             repeatMaxTime = datetime.timedelta(seconds=0.5)
-            if event.when - Filter.previousExecuted.event.when < repeatMaxTime:
+            if event.when - Trigger.previousExecuted.event.when < repeatMaxTime:
                 return
         if 'f' in OPTIONS.debug:
             LOGGER.debug('ACTION queue:{}'.format(str(self)))
         self.event = event
-        Filter.queued.append(self)
-        Filter.previousExecuted = self
-        if Filter.running:
-            LOGGER.debug('Filter still runs:{}'.format(Filter.running))
+        Trigger.queued.append(self)
+        Trigger.previousExecuted = self
+        if Trigger.running:
+            LOGGER.debug('Trigger still runs:{}'.format(Trigger.running))
         self.run()
 
     @staticmethod
     def run():
-        """if no filter action is currently running and we have some in the
+        """if no trigger action is currently running and we have some in the
         queue, start the next one"""
-        if Filter.running:
+        if Trigger.running:
             return
-        if Filter.queued:
-            fltr = Filter.running = Filter.queued.pop(0)
+        if Trigger.queued:
+            fltr = Trigger.running = Trigger.queued.pop(0)
             assert fltr.action
             if 'f' in OPTIONS.debug:
                 LOGGER.debug('ACTION start:{}'.format(str(fltr)))
             act = fltr.action(fltr.event, *fltr.args, **fltr.kwargs)
-            assert act, 'Filter {} returns None'.format(str(fltr))
+            assert act, 'Trigger {} returns None'.format(str(fltr))
             return act.addCallback(fltr.executed).addErrback(fltr.notExecuted)
 
     def executed(self, dummyResult):
-        """now the filter has finished. TODO: error path"""
+        """now the trigger has finished. TODO: error path"""
         if 'f' in OPTIONS.debug:
             LOGGER.debug('ACTION done :{} '.format(self))
-        Filter.running = None
+        Trigger.running = None
         self.run()
 
     def notExecuted(self, result):
-        """now the filter has finished. TODO: error path"""
+        """now the trigger has finished. TODO: error path"""
 #        if 'f' in OPTIONS.debug:
         LOGGER.error('ACTION {} had error :{}'.format((self, str(result))))
-        Filter.running = None
-        Filter.queued = []
+        Trigger.running = None
+        Trigger.queued = []
         self.run()
 
     @classmethod
@@ -289,7 +289,7 @@ class Filter(object):
                 LOGGER.error('ACTION {} cancelled after {} seconds'.format(
                     cls.running, elapsed))
                 cls.running = None
-        reactor.callLater(1, Filter.cancelLongRun)
+        reactor.callLater(1, Trigger.cancelLongRun)
 
     def __str__(self):
         """return name"""
@@ -307,7 +307,7 @@ class Filter(object):
 class Hal(object):
     """base class for central definitions, to be overridden by you!"""
     def __init__(self):
-        self.filters = []
+        self.triggers = []
         self.events = []
         self.timers = []
         self.__timerInterval = 20
@@ -323,25 +323,25 @@ class Hal(object):
         if 'e' in OPTIONS.debug:
             LOGGER.debug('received {}'.format(event))
         self.events.append(event)
-        matchingFilters = list(x for x in self.filters if x.matches(self.events))
-        for fltr in matchingFilters:
+        matchingTriggers = list(x for x in self.triggers if x.matches(self.events))
+        for fltr in matchingTriggers:
             if fltr.matches(self.events):
                 fltr.execute(event)
                 if fltr.stopIfMatch:
                     break
 
-    def addFilter(self, source, msg, action, *args, **kwargs):
+    def addTrigger(self, source, msg, action, *args, **kwargs):
         """a little helper for a common use case"""
-        fltr = Filter(source.message(msg), action, *args, **kwargs)
-        self.filters.append(fltr)
+        fltr = Trigger(source.message(msg), action, *args, **kwargs)
+        self.triggers.append(fltr)
         return fltr
 
-    def addRepeatableFilter(self, source, msg, action, *args, **kwargs):
+    def addRepeatableTrigger(self, source, msg, action, *args, **kwargs):
         """a little helper for a common use case"""
-        fltr = Filter(source.message(msg), action, *args, **kwargs)
+        fltr = Trigger(source.message(msg), action, *args, **kwargs)
         fltr.mayRepeat = True
-        LOGGER.debug('appending filter {}'.format(fltr))
-        self.filters.append(fltr)
+        LOGGER.debug('appending trigger {}'.format(fltr))
+        self.triggers.append(fltr)
         return fltr
 
     # pylint: disable=R0913
@@ -417,7 +417,7 @@ class Request(Deferred):
             return self.protocol.write(data)
         def sent(result):
             """off it went"""
-            Filter.running = None
+            Trigger.running = None
             if self.timeout > 0:
                 reactor.callLater(self.timeout, timedout, result)
         def timedout(result):
@@ -426,8 +426,8 @@ class Request(Deferred):
                 return
             LOGGER.error('Timeout on {}, cancelling'.format(self))
             result.cancel()
-            Filter.running = None
-            Filter.queued = []
+            Trigger.running = None
+            Trigger.queued = []
             self.errback(Exception('request timed out: {}'.format(self)))
         result = self.protocol.open().addCallback(self.__delaySending).addCallback(send1).addCallback(sent)
         if self.timeout < 0.0:
@@ -441,7 +441,7 @@ class Request(Deferred):
     def _donotwait(self, dummyResult):
         """do callback(None) and log warning"""
         assert self.timeout == -1, "_donotwait: timeout {} should be -1".format(self.timeout)
-        Filter.running = None
+        Trigger.running = None
         self.callback(None)
 
     def __str__(self):
