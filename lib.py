@@ -244,7 +244,7 @@ class Trigger(object):
         Trigger.queued.append(self)
         Trigger.previousExecuted = self
         if Trigger.running:
-            LOGGER.debug('Trigger still runs:{}'.format(Trigger.running))
+            LOGGER.debug('When starting trigger {}, older trigger still runs:{}'.format(self, Trigger.running))
         self.run()
 
     @staticmethod
