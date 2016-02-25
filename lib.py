@@ -100,7 +100,7 @@ class Timer(object):
         self.weekday = weekday
         self.lastDone = None
 
-    def trigger(self):
+    def execute(self):
         """if this timer should be executed now, do so"""
         now = datetime.datetime.now()
         if not self.lastDone or elapsedSince(self.lastDone) > 65:
@@ -354,7 +354,7 @@ class Hal(object):
     def __checkTimers(self):
         """check and execute timers"""
         for timer in self.timers:
-            timer.trigger()
+            timer.execute()
         Serializer.check()
         reactor.callLater(self.__timerInterval, self.__checkTimers)
 
