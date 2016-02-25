@@ -321,15 +321,21 @@ class Hal(object):
 
     def eventReceived(self, event):
         """central entry point for all events"""
-        if 'e' in OPTIONS.debug:
-            LOGGER.debug('received {}'.format(event))
+        triggers = list()
         self.events.append(event)
         matchingTriggers = list(x for x in self.triggers if x.matches(self.events))
         for trgr in matchingTriggers:
             if trgr.matches(self.events):
+                triggers.append(str(trgr))
                 trgr.execute(event)
                 if trgr.stopIfMatch:
                     break
+        if 'e' in OPTIONS.debug:
+            if triggers:
+                for trgr in triggers:
+                    LOGGER.debug('received {}, triggers {}'.format(event, trgr))
+            else:
+                LOGGER.debug('received {}, triggers nothing'.format(event))
 
     def addTrigger(self, source, msg, action, *args, **kwargs):
         """a little helper for a common use case"""
