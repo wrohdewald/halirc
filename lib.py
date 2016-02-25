@@ -254,13 +254,13 @@ class Trigger(object):
         if Trigger.running:
             return
         if Trigger.queued:
-            fltr = Trigger.running = Trigger.queued.pop(0)
-            assert fltr.action
+            trgr = Trigger.running = Trigger.queued.pop(0)
+            assert trgr.action
             if 'f' in OPTIONS.debug:
-                LOGGER.debug('ACTION start:{}'.format(str(fltr)))
-            act = fltr.action(fltr.event, *fltr.args, **fltr.kwargs)
-            assert act, 'Trigger {} returns None'.format(str(fltr))
-            return act.addCallback(fltr.executed).addErrback(fltr.notExecuted)
+                LOGGER.debug('ACTION start:{}'.format(str(trgr)))
+            act = trgr.action(trgr.event, *trgr.args, **trgr.kwargs)
+            assert act, 'Trigger {} returns None'.format(str(trgr))
+            return act.addCallback(trgr.executed).addErrback(trgr.notExecuted)
 
     def executed(self, dummyResult):
         """now the trigger has finished. TODO: error path"""
@@ -324,25 +324,25 @@ class Hal(object):
             LOGGER.debug('received {}'.format(event))
         self.events.append(event)
         matchingTriggers = list(x for x in self.triggers if x.matches(self.events))
-        for fltr in matchingTriggers:
-            if fltr.matches(self.events):
-                fltr.execute(event)
-                if fltr.stopIfMatch:
+        for trgr in matchingTriggers:
+            if trgr.matches(self.events):
+                trgr.execute(event)
+                if trgr.stopIfMatch:
                     break
 
     def addTrigger(self, source, msg, action, *args, **kwargs):
         """a little helper for a common use case"""
-        fltr = Trigger(source.message(msg), action, *args, **kwargs)
-        self.triggers.append(fltr)
-        return fltr
+        trgr = Trigger(source.message(msg), action, *args, **kwargs)
+        self.triggers.append(trgr)
+        return trgr
 
     def addRepeatableTrigger(self, source, msg, action, *args, **kwargs):
         """a little helper for a common use case"""
-        fltr = Trigger(source.message(msg), action, *args, **kwargs)
-        fltr.mayRepeat = True
-        LOGGER.debug('appending trigger {}'.format(fltr))
-        self.triggers.append(fltr)
-        return fltr
+        trgr = Trigger(source.message(msg), action, *args, **kwargs)
+        trgr.mayRepeat = True
+        LOGGER.debug('appending trigger {}'.format(trgr))
+        self.triggers.append(trgr)
+        return trgr
 
     # pylint: disable=R0913
     def addTimer(self, action, args=None, name=None, minute=None, hour=None,
