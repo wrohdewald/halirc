@@ -18,7 +18,7 @@ along with this program if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """
 
-import datetime, daemon, weakref, types
+import datetime, daemon, weakref, types, sys
 import logging, logging.handlers
 from optparse import OptionParser
 
@@ -83,6 +83,7 @@ def initLogger():
     else:
         formatter = logging.Formatter("%(asctime)s %(name)s: %(levelname)s %(message)s")
     handler.setFormatter(formatter)
+    LOGGER.info('halirc started with {}'.format(' '.join(sys.argv)))
     return LOGGER
 
 class Timer(object):
