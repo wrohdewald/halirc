@@ -382,6 +382,9 @@ class Request(Deferred):
                 elapsed = elapsedSince(oldRequest.sendTime)
                 stillWaiting = delay - elapsed
                 if stillWaiting > 0:
+                    if 't' in OPTIONS.debug:
+                        LOGGER.debug('{} still waiting {} seconds until delay {} after {} is complete'.format(
+                            self, stillWaiting, delay, oldRequest))
                     return stillWaiting
         return 0
 
