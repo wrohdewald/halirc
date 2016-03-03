@@ -121,6 +121,13 @@ class MyHal(Hal):
 #        self.addTrigger(lirc, 'AcerP1165.7', yamaha.send, 'SIV.AUX')
 #        self.addTrigger(lirc, 'AcerP1165.8', yamaha.send, 'SICDR.TAPE')
 #        self.addTrigger(lirc, 'AcerP1165.9', yamaha.send, 'SITV')
+
+# Das hier waere nett, aber der Yamaha reagiert da schon selber drauf
+# TODO: mit debug=all kommen nicht mehr alle lirc Events ins Debuglog
+        self.addTrigger(lirc, 'Denon_AVR2805.Channel+', yamaha.send, '@TUN:PRESET=Up')
+        self.addTrigger(lirc, 'Denon_AVR2805.Channel-', yamaha.send, '@TUN:PRESET=Down')
+        self.addTrigger(lirc, 'Denon_AVR2805.Tuning+', yamaha.send, '@TUN:FMFREQ=Auto Up')
+        self.addTrigger(lirc, 'Denon_AVR2805.Tuning-', yamaha.send, '@TUN:FMFREQ=Auto Down')
         self.addTrigger(lirc, 'AcerP1165.Left', yamaha.poweron)
         self.addTrigger(lirc, 'AcerP1165.Right', allOff, [yamaha, lgtv, pioneer])
         self.addRepeatableTrigger(lirc, 'AcerP1165.Down', yamaha.volume, 'Down')
