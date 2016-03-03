@@ -400,6 +400,8 @@ class Request(Deferred):
         harmless, we cannot simply respect delay to previous command,
         we need to check further back in the history"""
         allRequests = [x for x in self.protocol.tasks.allRequests if x.sendTime]
+        # sometimes we must wait even if the previous command has been
+        # acked. Needed for LGTV after poweron.
         if allRequests:
             waitingAfter = sorted(allRequests, key=self.restOfDelay)[-1]
             if 't' in OPTIONS.debug:
