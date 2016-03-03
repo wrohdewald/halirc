@@ -367,16 +367,16 @@ class Hal(object):
 
 class Request(Deferred):
     """we request the device to do something"""
-    def __init__(self, protocol, message, timeout=None):
-        """data without line eol. timeout -1 means we do not expect an answer."""
-        if timeout is None:
-            timeout = 5
+    def __init__(self, protocol, message, maxWaitSeconds=None):
+        """data without line eol. maxWaitSeconds -1 means we do not expect an answer."""
+        if maxWaitSeconds is None:
+            maxWaitSeconds = 5
         self.protocol = protocol
         self.message = message
-        self.timeout = timeout
+        self.maxWaitSeconds = maxWaitSeconds
         self.createTime = datetime.datetime.now()
         self.sendTime = None
-        self.answerTime = datetime.datetime.now() if timeout == -1 else None
+        self.answerTime = datetime.datetime.now() if maxWaitSeconds == -1 else None
         assert isinstance(message, Message), message
         Deferred.__init__(self)
 
@@ -430,8 +430,8 @@ class Request(Deferred):
         def sent(result):
             """off it went"""
             Trigger.running = None
-            if self.timeout > 0:
-                reactor.callLater(self.timeout, timedout, result)
+            if self.maxWaitSeconds > 0:
+                reactor.callLater(self.maxWaitSeconds, timedout, result)
         def timedout(result):
             """did we time out?"""
             if self.answerTime:
@@ -442,7 +442,7 @@ class Request(Deferred):
             Trigger.queued = []
             self.errback(Exception('request timed out: {}'.format(self)))
         result = self.protocol.open().addCallback(self.__delaySending).addCallback(send1).addCallback(sent)
-        if self.timeout < 0.0:
+        if self.maxWaitSeconds < 0.0:
             result.addCallback(self._donotwait)
         return result
 
@@ -452,7 +452,7 @@ class Request(Deferred):
 
     def _donotwait(self, dummyResult):
         """do callback(None) and log warning"""
-        assert self.timeout == -1, "_donotwait: timeout {} should be -1".format(self.timeout)
+        assert self.maxWaitSeconds == -1, "_donotwait: maxWaitSeconds {} should be -1".format(self.maxWaitSeconds)
         Trigger.running = None
         self.callback(None)
 
@@ -466,7 +466,9 @@ class Request(Deferred):
                 comment = ''
             else:
                 comment = 'unsent, created %.3f seconds ago' % elapsedSince(self.createTime)
-        return '%s %s %s %s timeout=%s' % (id(self) % 10000, self.protocol.name(), self.message, comment, self.timeout)
+        return '%s %s %s %s maxWaitSeconds=%s' % (
+                id(self) % 10000, self.protocol.name(), self.message,
+                comment, 'nowait' if self.maxWaitSeconds == -1 else self.maxWaitSeconds)
 
 class TaskQueue(object):
     """serializes requests for a device. If needed, delay next
@@ -511,7 +513,7 @@ class TaskQueue(object):
             reactor.callLater(0, self.run) # do not call directly, no recursion
         if not self.running and self.queued:
             self.running = self.queued.pop(0)
-            if self.running.timeout == -1:
+            if self.running.maxWaitSeconds == -1:
                 return self.running.send().addCallback(sent).addErrback(self.failed)
             else:
                 return self.running.send().addErrback(self.failed)
@@ -608,7 +610,7 @@ class Serializer(object):
         """unconditionally send cmd, do not expect an answer"""
         _, msg = self.args2message(*args)
         assert isinstance(msg, Message), msg
-        return self.tasks.push(Request(self, msg, timeout=-1))
+        return self.tasks.push(Request(self, msg, maxWaitSeconds=-1))
 
     def name(self):
         """for logging messages"""
