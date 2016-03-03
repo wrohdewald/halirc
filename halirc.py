@@ -41,8 +41,8 @@ class MorningAction(object):
         self.yamaha = yamaha
         workdays = [0, 1, 2, 3, 4]
 
-        hal.addTimer(self.kitchen, hour=4, minute=00, weekday=workdays)
-        hal.addTimer(self.leaving, hour=4, minute=40, weekday=workdays)
+        hal.addTimer(self.kitchen, hour=3, minute=50, weekday=workdays)
+        hal.addTimer(self.leaving, hour=4, minute=35, weekday=workdays)
 
     def kitchen(self):
         """start radio channel NDR 90,3 loudly"""
