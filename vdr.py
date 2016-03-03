@@ -27,7 +27,7 @@ from twisted.internet import reactor
 from twisted.internet.protocol import ClientFactory
 
 
-from lib import Serializer, SimpleTelnet, Message, OPTIONS, LOGGER, elapsedSince
+from lib import Serializer, SimpleTelnet, Message, LOGGER, logDebug, elapsedSince
 
 class VdrMessage(Message):
     """holds content of a message from or to Vdr"""
@@ -63,8 +63,7 @@ class VdrProtocol(SimpleTelnet):
 
     def lineReceived(self, line):
         """we got a full line from vdr"""
-        if 'p' in OPTIONS.debug:
-            LOGGER.debug('READ from {}: {}'.format(self.wrapper.name(), repr(line)))
+        logDebug(self, 'p', 'READ from {}: {}'.format(self.wrapper.name(), repr(line)))
         if line.startswith('221 '):
             # this is an error because we should have
             # closed the connection ourselves after a
@@ -111,7 +110,7 @@ class Vdr(Serializer):
             self.protocol = result
             self.protocol.wrapper = self
         if not self.protocol:
-            LOGGER.debug('opening vdr')
+            logDebug(self, None, 'opening vdr')
             point = TCP4ClientEndpoint(reactor, self.host, self.port)
             factory = ClientFactory()
             factory.protocol = VdrProtocol
@@ -128,7 +127,7 @@ class Vdr(Serializer):
         if self.protocol:
             if not (self.tasks.running or self.tasks.queued):
                 if elapsedSince(self.tasks.allRequests[-1].sendTime) > self.closeTimeout - 1:
-                    LOGGER.debug('closing vdr after closeTimeout {}'.format(self.closeTimeout))
+                    logDebug(self, None, 'closing vdr after closeTimeout {}'.format(self.closeTimeout))
                     self.write('quit\n')
                     self.protocol.transport.loseConnection()
                     self.protocol = None
@@ -174,7 +173,7 @@ class Vdr(Serializer):
             environ['DISPLAY'] = ':0'
             environ['HOME'] = '/home/wr'
             self.kodiProcess = subprocess.Popen(["kodi", "-fs"], env=environ)
-            LOGGER.debug('started kodi process {}'.format(self.kodiProcess.pid))
+            logDebug(self, None, 'started kodi process {}'.format(self.kodiProcess.pid))
         def _remoteOff(dummyResult):
             """disable remote control"""
             return self.send('remo off')
@@ -184,7 +183,7 @@ class Vdr(Serializer):
                 return self.send('plug softhddevice susp').addCallback(_remoteOff).addCallback(startKodi)
             elif result.value().endswith(' SUSPEND_NORMAL'):
                 if self.kodiProcess:
-                    LOGGER.debug('killing kodi process {}'.format(self.kodiProcess.pid))
+                    logDebug(self, None, 'killing kodi process {}'.format(self.kodiProcess.pid))
                     self.kodiProcess.kill() # would be nice to terminate cleanly
                     _ = self.kodiProcess.wait()
                     self.kodiProcess = None
@@ -192,7 +191,7 @@ class Vdr(Serializer):
                 reactor.callLater(7, self.send, 'plug softhddevice resu')
                 return self.send('remo on')
             else:
-                LOGGER.debug('plug softhddevice stat returns unexpected answer:{}'.format(repr(result)))
+                LOGGER.error('plug softhddevice stat returns unexpected answer:{}'.format(repr(result)))
                 return succeed(None)
 
         return self.ask('plug softhddevice stat').addCallback(_toggle1)

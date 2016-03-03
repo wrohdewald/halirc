@@ -24,7 +24,7 @@ from twisted.internet import reactor
 from twisted.internet.protocol import ClientFactory
 
 
-from lib import Serializer, SimpleTelnet, Message, OPTIONS, LOGGER
+from lib import Serializer, SimpleTelnet, Message, LOGGER, logDebug
 
 class PioneerMessage(Message):
     """holds content of a message from or to Pioneer"""
@@ -52,8 +52,7 @@ class PioneerProtocol(SimpleTelnet):
 
     def lineReceived(self, line):
         """we got a full line from Pioneer"""
-        if 'p' in OPTIONS.debug:
-            LOGGER.debug('READ from {}: {}'.format(self.wrapper.name(), repr(line)))
+        logDebug(self, 'p', 'READ from {}: {}'.format(self.wrapper.name(), repr(line)))
         if self.wrapper.tasks.running:
             self.wrapper.tasks.gotAnswer(PioneerMessage(line))
         else:

@@ -25,7 +25,7 @@ from twisted.internet.protocol import ClientFactory
 from twisted.internet.defer import succeed
 
 
-from lib import Serializer, SimpleTelnet, Message, LOGGER, elapsedSince
+from lib import Serializer, SimpleTelnet, Message, OPTIONS, logDebug, elapsedSince
 
 class YamahaMessage(Message):
     """holds content of a message from or to Yamaha"""
@@ -67,8 +67,7 @@ class YamahaProtocol(SimpleTelnet):
     def lineReceived(self, line):
         """we got a full line from Yamaha"""
         msg = Serializer.defaultInputHandler(self.wrapper, line)
-#        if 'p' in OPTIONS.debug:
-#            LOGGER.debug('READ from %s: %s' % (self.wrapper.name(), repr(line)))
+        logDebug(self, 'p', 'READ from {}: {}'.format(self.wrapper.name(), repr(line)))
 #        msg = YamahaMessage(line)
         self.status[msg.command()] = msg.value()
 #        if self.wrapper.tasks.running:
@@ -104,7 +103,7 @@ class Yamaha(Serializer):
             self.protocol.wrapper = self
             self.ping()
         if not self.protocol:
-            LOGGER.debug('opening Yamaha')
+            logDebug(self, None, 'opening Yamaha')
             point = TCP4ClientEndpoint(reactor, self.host, self.port)
             factory = ClientFactory()
             factory.protocol = YamahaProtocol
@@ -116,7 +115,7 @@ class Yamaha(Serializer):
 
     def ping(self):
         """keep connection alive or the yamaha closes it"""
-        LOGGER.debug('pinging Yamaha')
+        logDebug(self, None, 'pinging Yamaha')
         self.write('@SYS:INPNAMEPHONO=PHONO\r\n')
         reactor.callLater(10, self.ping)
 
@@ -125,7 +124,7 @@ class Yamaha(Serializer):
         if self.protocol:
             if not (self.tasks.running or self.tasks.queued):
                 if elapsedSince(self.tasks.allRequests[-1].sendTime) > self.closeTimeout - 1:
-                    LOGGER.debug('closing Yamaha')
+                    logDebug(self, None, 'closing Yamaha')
                     self.protocol.transport.loseConnection()
                     self.protocol = None
 

@@ -44,6 +44,16 @@ def elapsedSince(since):
         x = datetime.datetime.now() - since
         return float(x.microseconds + (x.seconds + x.days * 24 * 3600) * 10**6) / 10**6
 
+def scanDeviceIds():
+    """TODO: this should happen dynamically, not hard coded"""
+    Serializer.debugIds.append('Lirc')
+    Serializer.debugIds.append('VDR')
+    Serializer.debugIds.append('Yamaha')
+    Serializer.debugIds.append('Denon')
+    Serializer.debugIds.append('Gembird')
+    Serializer.debugIds.append('LGTV')
+    Serializer.debugIds.append('Pioneer')
+
 def parseOptions():
     """should switch to argparse when debian stable has python 2.7"""
     parser = OptionParser()
@@ -60,10 +70,19 @@ a sequence of characters: 's' shows data sent to appliances.
     parser.add_option('-b', '--background', dest='background',
         action="store_true", default=False,
         help="run in background. Logging goes to the syslogs.")
+    parser.add_option('-D', '--device', dest='device',
+        help="""Show only debug messages about a specific device.
+If not given, show all.
+DEVICE: any of {}
+        """.format(' '.join(Serializer.debugIds), default='', metavar='DEVICE'))
     global OPTIONS # pylint: disable=W0603
     OPTIONS = parser.parse_args()[0]
     if OPTIONS.debug == 'all':
         OPTIONS.debug = 'srepcft'
+    if not OPTIONS.device:
+        OPTIONS.device = Serializer.debugIds
+    else:
+        OPTIONS.device = list([OPTIONS.device])
 
 def initLogger():
     """logging goes to stderr when running in foregrund, else
@@ -85,6 +104,16 @@ def initLogger():
     handler.setFormatter(formatter)
     LOGGER.info('halirc started with {}'.format(' '.join(sys.argv)))
     return LOGGER
+
+def logDebug(obj, debugFlag, msg):
+    """log something about obj"""
+    if not debugFlag or debugFlag in OPTIONS.debug:
+        if obj:
+            if obj.__class__.__name__ in OPTIONS.device:
+                LOGGER.debug(msg)
+        else:
+            if any(x in msg for x in OPTIONS.device):
+                LOGGER.debug(msg)
 
 class Timer(object):
     """hold attributes needed for a timer"""
@@ -239,13 +268,12 @@ class Trigger(object):
             repeatMaxTime = datetime.timedelta(seconds=0.5)
             if event.when - Trigger.previousExecuted.event.when < repeatMaxTime:
                 return
-        if 'f' in OPTIONS.debug:
-            LOGGER.debug('ACTION queue:{}'.format(str(self)))
+        logDebug(None, 'f', 'ACTION queue:{}'.format(str(self)))
         self.event = event
         Trigger.queued.append(self)
         Trigger.previousExecuted = self
         if Trigger.running:
-            LOGGER.debug('When starting trigger {}, older trigger still runs:{}'.format(self, Trigger.running))
+            logDebug(None, None, 'When starting trigger {}, older trigger still runs:{}'.format(self, Trigger.running))
         self.run()
 
     @staticmethod
@@ -257,16 +285,14 @@ class Trigger(object):
         if Trigger.queued:
             trgr = Trigger.running = Trigger.queued.pop(0)
             assert trgr.action
-            if 'f' in OPTIONS.debug:
-                LOGGER.debug('ACTION start:{}'.format(str(trgr)))
+            logDebug(None, 'f', 'ACTION start:{}'.format(str(trgr)))
             act = trgr.action(trgr.event, *trgr.args, **trgr.kwargs)
             assert act, 'Trigger {} returns None'.format(str(trgr))
             return act.addCallback(trgr.executed).addErrback(trgr.notExecuted)
 
     def executed(self, dummyResult):
         """now the trigger has finished. TODO: error path"""
-        if 'f' in OPTIONS.debug:
-            LOGGER.debug('ACTION done :{} '.format(self))
+        logDebug(None, 'f', 'ACTION done :{} '.format(self))
         Trigger.running = None
         self.run()
 
@@ -283,9 +309,8 @@ class Trigger(object):
         """after 10 seconds, cancel a running request"""
         if cls.running:
             elapsed = elapsedSince(cls.running.event.when)
-            if 't' in OPTIONS.debug:
-                LOGGER.debug('{} running since {} seconds'.format(
-                  cls.running, elapsed))
+            logDebug(None, 't', '{} running since {} seconds'.format(
+              cls.running, elapsed))
             if elapsed > 10:
                 LOGGER.error('ACTION {} cancelled after {} seconds'.format(
                     cls.running, elapsed))
@@ -330,12 +355,11 @@ class Hal(object):
                 trgr.execute(event)
                 if trgr.stopIfMatch:
                     break
-        if 'e' in OPTIONS.debug:
-            if triggers:
-                for trgr in triggers:
-                    LOGGER.debug('received {}, triggers {}'.format(event, trgr))
-            else:
-                LOGGER.debug('received {}, triggers nothing'.format(event))
+        if triggers:
+            for trgr in triggers:
+                logDebug(None, 'e', 'received {}, triggers {}'.format(event, trgr))
+        else:
+            logDebug(None, 'e', 'received {}, triggers nothing'.format(event))
 
     def addTrigger(self, source, msg, action, *args, **kwargs):
         """a little helper for a common use case"""
@@ -347,7 +371,7 @@ class Hal(object):
         """a little helper for a common use case"""
         trgr = Trigger(source.message(msg), action, *args, **kwargs)
         trgr.mayRepeat = True
-        LOGGER.debug('appending trigger {}'.format(trgr))
+        logDebug(None, None, 'appending trigger {}'.format(trgr))
         self.triggers.append(trgr)
         return trgr
 
@@ -388,9 +412,9 @@ class Request(Deferred):
                 elapsed = elapsedSince(oldRequest.sendTime)
                 stillWaiting = delay - elapsed
                 if stillWaiting > 0:
-                    if 't' in OPTIONS.debug:
-                        LOGGER.debug('{} still waiting {} seconds until delay {} after {} is complete'.format(
-                            self, stillWaiting, delay, oldRequest))
+                    logDebug(self.protocol, 't',
+                        '{} still waiting {} seconds until delay {} after {} is complete'.format(
+                        self, stillWaiting, delay, oldRequest))
                     return stillWaiting
         return 0
 
@@ -404,15 +428,10 @@ class Request(Deferred):
         # acked. Needed for LGTV after poweron.
         if allRequests:
             waitingAfter = sorted(allRequests, key=self.restOfDelay)[-1]
-            if 't' in OPTIONS.debug:
-                LOGGER.debug('waitingAfter set to {}'.format(waitingAfter))
             stillWaiting = self.restOfDelay(waitingAfter)
             if stillWaiting:
-                if 't' in OPTIONS.debug:
-                    prevMessage = waitingAfter.message
-                    delay = self.protocol.delay(waitingAfter, self)
-                    LOGGER.debug('sleeping {} out of {} seconds between {} and {}'.format(
-                        stillWaiting, delay, prevMessage, self.message))
+                logDebug(self.protocol, 't', 'sleeping {} out of {} seconds between {} and {}'.format(
+                    stillWaiting, self.protocol.delay(waitingAfter, self), waitingAfter.message, self.message))
                 deferred = Deferred()
                 reactor.callLater(stillWaiting, deferred.callback, None)
                 return deferred
@@ -424,8 +443,7 @@ class Request(Deferred):
             """now the transport is open"""
             self.sendTime = datetime.datetime.now()
             data = self.message.encoded + self.protocol.eol
-            if 'p' in OPTIONS.debug:
-                LOGGER.debug('WRITE {}: {}'.format(self, repr(data)))
+            logDebug(self.protocol, 'p', 'WRITE {}: {}'.format(self, repr(data)))
             return self.protocol.write(data)
         def sent(result):
             """off it went"""
@@ -489,8 +507,7 @@ class TaskQueue(object):
         assert isinstance(request, Request), request
         request.previous = self.allRequests[-1] if self.allRequests else None
         self.queued.append(request)
-        if 'c' in OPTIONS.debug:
-            LOGGER.debug('queued for {}: {}'.format(self.device, request))
+        logDebug(self.device, 'c', 'queued for {}: {}'.format(self.device, request))
         self.allRequests = self.allRequests[-20:]
         self.allRequests.append(request)
         request.addErrback(self.failed)
@@ -520,8 +537,7 @@ class TaskQueue(object):
 
     def gotAnswer(self, msg):
         """the device returned an answer"""
-        if 'r' in OPTIONS.debug:
-            LOGGER.debug('gotAnswer for {}: {}'.format(self.running, msg))
+        logDebug(self.device, 'r', 'gotAnswer for {}: {}'.format(self.running, msg))
         self.running.answerTime = datetime.datetime.now()
         running = self.running
         self.running = None
@@ -557,6 +573,7 @@ class Serializer(object):
     """
     eol = '\r'
     message = Message
+    debugIds = list()
     # __instances holds weakrefs to Serializer instances. We do not bother
     # to ever remove items since a Serializer is normally never deleted, but
     # just in case we use weakrefs anyway
@@ -589,8 +606,7 @@ class Serializer(object):
 
     def defaultInputHandler(self, data):
         """we got a line from a device"""
-        if 'p' in OPTIONS.debug:
-            LOGGER.debug('READ {}: {}'.format(self.name(), repr(data)))
+        logDebug(self, 'p', 'READ {}: {}'.format(self.name(), repr(data)))
         msg = self.message(encoded=data)
         isAnswer = self.tasks.running and \
             self.tasks.running.message.answerMatches(msg)
@@ -719,8 +735,7 @@ class OsdCat(object):
                '--align=center', '--outline=5', '--lines=1', '--delay=2', '--offset=10',
                '--font=-adobe-courier-bold-r-normal--*-640-*-*-*-*' \
                ], env={'DISPLAY': ':0'})
-            if 'p' in OPTIONS.debug:
-                LOGGER.debug('OsdCat started process')
+            logDebug(self, 'p', 'OsdCat started process')
         reactor.callLater(self.closeTimeout, self.close)
 
     def close(self):
@@ -729,14 +744,12 @@ class OsdCat(object):
             if elapsedSince(self.__lastSent) > self.closeTimeout - 1:
                 self.__osdcat.transport.closeStdin()
                 self.__osdcat = None
-                if 'p' in OPTIONS.debug:
-                    LOGGER.debug('OsdCat stopped process')
+                logDebug(self, 'p', 'OsdCat stopped process')
 
     def write(self, data):
         """write to the osd_cat process"""
         self.open()
-        if 'p' in OPTIONS.debug:
-            LOGGER.debug('WRITE to OsdCat: {}'.format(repr(data)))
+        logDebug(self, 'p', 'WRITE to OsdCat: {}'.format(repr(data)))
         self.__osdcat.transport.write(data + '\n')
         self.__lastSent = datetime.datetime.now()
         return succeed(None)
@@ -774,5 +787,6 @@ def main(hal):
     else:
         hal()
 
+scanDeviceIds()
 parseOptions()
 initLogger()
