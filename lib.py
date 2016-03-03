@@ -249,7 +249,6 @@ class Trigger(object):
         if not Trigger.longRunCancellerStarted:
             Trigger.longRunCancellerStarted = True
             # call this only once
-            LOGGER.debug('starting cancelLongRun')
             reactor.callLater(1, Trigger.cancelLongRun)
 
     def matches(self, events):
@@ -298,7 +297,6 @@ class Trigger(object):
 
     def notExecuted(self, result):
         """now the trigger has finished. TODO: error path"""
-#        if 'f' in OPTIONS.debug:
         LOGGER.error('ACTION {} had error :{}'.format((self, str(result))))
         Trigger.running = None
         Trigger.queued = []
