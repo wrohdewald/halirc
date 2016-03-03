@@ -443,24 +443,25 @@ class Request(Deferred):
             data = self.message.encoded + self.protocol.eol
             logDebug(self.protocol, 'p', 'WRITE {}: {}'.format(self, repr(data)))
             return self.protocol.write(data)
-        def sent(result):
+        def sent(dummy, sendDeferred):
             """off it went"""
             Trigger.running = None
             if self.maxWaitSeconds > 0:
-                reactor.callLater(self.maxWaitSeconds, timedout, result)
-        def timedout(result):
+                reactor.callLater(self.maxWaitSeconds, timedout, sendDeferred)
+        def timedout(timedoutDeferred):
             """did we time out?"""
             if self.answerTime:
                 return
             LOGGER.error('Timeout on {}, cancelling'.format(self))
-            result.cancel()
+            timedoutDeferred.cancel()
             Trigger.running = None
             Trigger.queued = []
             self.errback(Exception('request timed out: {}'.format(self)))
-        result = self.protocol.open().addCallback(self.__delaySending).addCallback(send1).addCallback(sent)
+        sendDeferred = self.protocol.open()
+        sendDeferred.addCallback(self.__delaySending).addCallback(send1).addCallback(sent, sendDeferred)
         if self.maxWaitSeconds < 0.0:
-            result.addCallback(self._donotwait)
-        return result
+            sendDeferred.addCallback(self._donotwait)
+        return sendDeferred
 
     def callback(self, *args, **kwargs):
         """request fulfilled"""
