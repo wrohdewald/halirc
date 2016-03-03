@@ -372,12 +372,12 @@ class Request(Deferred):
         if timeout is None:
             timeout = 5
         self.protocol = protocol
-        self.createTime = datetime.datetime.now()
-        self.sendTime = None
-        self.answerTime = None
-        assert isinstance(message, Message), message
         self.message = message
         self.timeout = timeout
+        self.createTime = datetime.datetime.now()
+        self.sendTime = None
+        self.answerTime = datetime.datetime.now() if timeout == -1 else None
+        assert isinstance(message, Message), message
         Deferred.__init__(self)
 
     def restOfDelay(self, oldRequest):
