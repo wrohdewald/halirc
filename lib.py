@@ -421,6 +421,9 @@ class Request(Deferred):
         accept more commands for some time. Since queries are mostly
         harmless, we cannot simply respect delay to previous command,
         we need to check further back in the history"""
+        if not self.protocol.connected:
+            logDebug('delay Sending for 0.1 second, we are not connected', 't', self.message)
+            return sleep(0.1).addCallback(self.__delaySending)
         allRequests = [x for x in self.protocol.tasks.allRequests if x.sendTime]
         # sometimes we must wait even if the previous command has been
         # acked. Needed for LGTV after poweron.
@@ -587,6 +590,7 @@ class Serializer(object):
         self.__instances.append(weakref.ref(self))
         self.bootDelay = 1     # time needed for cold boot
         self.shutdownDelay = 1 # time needed for shutdown into standby
+        self.connected = True
 
     def open(self): # pylint: disable=R0201
         """the device is always open"""

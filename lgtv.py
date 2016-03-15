@@ -19,7 +19,7 @@ along with this program if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """
 
-import sys, datetime
+import sys, os, datetime
 
 from twisted.protocols.basic import LineOnlyReceiver
 from twisted.internet.defer import succeed
@@ -123,9 +123,27 @@ class LGTV(LineOnlyReceiver, Serializer):
 
     def __init__(self, hal, device='/dev/LGPlasma', outlet=None):
         Serializer.__init__(self, hal, outlet)
+        self.device = device
         self.videoMuted = None
         self.tvTimeout = 300
-        self.__port = SerialPort(self, device, reactor)
+        self.connect()
+
+    def connect(self):
+        """connect to serial port"""
+        if not os.path.exists(self.device):
+            self.connected = False
+            LOGGER.info('LGTV: {} does not exist, waiting for 0.1 seconds'.format(self.device))
+            reactor.callLater(0.1, self.connect)
+        else:
+            SerialPort(self, self.device, reactor)
+            self.connected = True
+            LOGGER.info('LGTV: connected to {}'.format(self.device))
+
+    def connectionLost(self, reason):
+        """USB disconnect or similar"""
+        self.connected = False
+        LOGGER.error('LGTV lost connection: {}'.format(reason))
+        reactor.callLater(5, self.connect)
 
     @staticmethod
     def delay(previous, dummyThis):
