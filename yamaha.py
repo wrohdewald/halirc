@@ -25,7 +25,7 @@ from twisted.internet.protocol import ClientFactory
 from twisted.internet.defer import succeed
 
 
-from lib import Serializer, SimpleTelnet, Message, OPTIONS, logDebug, elapsedSince
+from lib import Serializer, SimpleTelnet, Message, logDebug, elapsedSince
 
 class YamahaMessage(Message):
     """holds content of a message from or to Yamaha"""
